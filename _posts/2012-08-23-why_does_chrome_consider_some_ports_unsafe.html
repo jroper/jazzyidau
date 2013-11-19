@@ -1,0 +1,73 @@
+---
+title: Why does Chrome consider some ports unsafe?
+date: 2012/08/23 02:35
+tags: security chrome
+---
+<p>
+Today in my Twitter feed I noticed a <a href="https://twitter.com/tastapod/status/238302479849250816">frustrated tweet</a> from Dan North complaining about why Chrome seems to arbitrarily block connections to some ports, giving the confusing error code "net::ERR_UNSAFE_PORT".  I've encountered this before, and have also been similarly frustrated, so I decided to do a little research, and work out what Google means by unsafe.  There are a few discussions in stack overflow and forums about exactly which ports are blocked, but I didn't find much about why they are considered unsafe.
+</p>
+
+<p>
+My first assumption was that somehow it was unsafe for Chrome itself to connect to services on these ports, because maybe that services protocol might confuse Chrome into doing something wrong.  However, this didn't make sense, and I then worked out that it's not about protecting Chrome, but protecting the services themselves running on these ports.  Many internet protocols are designed to be very permissive as to what they accept, and this presents an interesting attack opportunity for attackers.
+</p>
+
+<p>
+As web developers with a mind for security are well aware, the browser is incredibly obliging to attackers when it comes to making requests on servers on your behalf.  XSRF is a perfect example of this, but the good news is, we know how to protect against XSRF.  However, what if an attacker tricked a web browser into making a connection to something that doesn't speak HTTP?  Let's take, for example, an SMTP server.  If you've never seen an SMTP session before, here is an example session that I've ripped from <a href="http://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol">wikipedia</a>:
+</p>
+
+<pre>
+S: 220 smtp.example.com ESMTP Postfix
+C: HELO relay.example.org
+S: 250 Hello relay.example.org, I am glad to meet you
+C: MAIL FROM:<bob@example.org>
+S: 250 Ok
+C: RCPT TO:<alice@example.com>
+S: 250 Ok
+C: RCPT TO:<theboss@example.com>
+S: 250 Ok
+C: DATA
+S: 354 End data with <CR><LF>.<CR><LF>
+C: From: "Bob Example" <bob@example.org>
+C: To: "Alice Example" <alice@example.com>
+C: Cc: theboss@example.com
+C: Date: Tue, 15 January 2008 16:02:43 -0500
+C: Subject: Test message
+C:
+C: Hello Alice.
+C: This is a test message with 5 header fields and 4 lines in the message body.
+C: Your friend,
+C: Bob
+C: .
+S: 250 Ok: queued as 12345
+C: QUIT
+S: 221 Bye
+</pre>
+
+<p>
+On first glance, this may look nothing like HTTP.  Except for one important feature, like HTTP, SMTP separates elements of its protocol with newlines.  Furthermore, what happens when we send data to an SMTP server that it doesn't understand?  Well, here's a simple HTTP GET request with an example SMTP server:
+</p>
+
+<pre>
+C: GET / HTTP/1.1
+S: 500 5.5.1 Command unrecognized: "GET / HTTP/1.1"
+C: Host: www.example.com
+S: 500 5.5.1 Command unrecognized: "Host: www.example.com"
+C: 
+S: 500 5.5.1 Command unrecognized: ""
+</pre>
+
+<p>
+So, obviously our mail server is confused, but an important thing to notice here is that it's not outright rejecting our connection, it's telling the client that there is an error, but continuing to accept commands.  So can we exploit this?  The answer is a resounding yes.  What if I, an attacker, were to craft a page that had a form, that was automatically submitted (using a javascript on load event that invoked the submit method - similar to a form based XSRF attack) to an SMTP server.  In order to speak SMTP with this server, I would need to be able to include new lines in my messages.  This is not possible using <tt>application/x-www-form-urlencoded</tt>, since newlines are URL encoded, however using <tt>multipart/form-data</tt>, I can create a field that has the client side messages in the above SMTP conversation, and so using my victims web browser, I can submit an email to the target SMTP server.  The SMTP server would ignore all the HTTP protocol as in the above example, including the method and headers, as well as the <tt>multipart/form-data</tt> header content, but once it got my field, which would have my HELO, MAIL FROM, RCPT TO etc commands in it, it would start processing them.
+</p>
+
+<p>
+But of course, an attacker could just connect directly to the SMTP server, right?  For some SMTP servers yes.  However, many SMTP servers are protected with nothing more than a firewall, and especially if the SMTP server is configured to use this as a security mechanism for verifying the authenticity of the source of the email, it may be desirable for an attacker to be able to send email through such an SMTP server.  So what this means is an attacker could use a browser running behind a firewall that was protecting an SMTP server as a proxy to connecting to that SMTP server, and so send messages using it.
+</p>
+
+<p>
+As it turns out, some SMTP servers actually detect HTTP requests made on them and immediately close the connection (my servers SMTP server did this when I tried with it).  However, not all SMTP servers do this, because it wasn't envisioned that a piece of client server, such as a web browser, could be used as an open proxy to a protected network.  And it's certainly not a good idea to assume that other types of services/servers, such as FTP servers and even IRC servers, will do this too.
+</p>
+
+<p>
+So, why does Chrome refuse to connect to some ports?  Because the Google engineers has gone through the list of well known ports, and worked out how tolerant the protocols that use these ports are to being sent HTTP requests, and if they are tolerant, they've marked it as unsafe and so blocked it, to prevent Google Chrome from being an open proxy to a secured network.  Should all web browsers do this?  Probably.
+</p>

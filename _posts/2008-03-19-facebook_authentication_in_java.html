@@ -1,0 +1,153 @@
+---
+title: Facebook authentication in Java
+date: 2008/03/19 22:48
+tags: java facebook spring
+---
+<p>If you're a web developer who likes writing practical, quick, and simple utility applications for yourself and others to use, then Facebook is the dream platform.  You don't have to write any user management, sign in, password change pages etc, it comes complete with advanced user management, including friends lists.  There's a high chance that your target users already use it, which makes them more likely to adopt your application because they don't need to go and create yet another username/password on yet another website.  It already has a theme and style sheets, and will present your application surrounded in menus and title bars.  And it provides a large number of ways to publish content and send notifications when events occur.  All these features mean that you, the developer, can spend more time doing what you wanted to do, that is, writing your application.</p>
+
+<p>If Java is your chosen platform however, you may encounter some difficulties.  Java developers tend to like following well established design patterns.  We like to think of things as beans that have distinct purposes.  We like to use frameworks such as Spring to manage the beans that contain logic, to glue our application together.  We like our data to be stored in beans, and we access that data using getters and setters.  The Facebook client API makes this difficult, for the following reasons:</p>
+
+<ol>
+<li>Its instantiation is dependent on parameters in an HTTP request.  This means we can't use it as a typical Spring bean.</li>
+<li>Depending on which flavour you of client you use, it returns JSON objects, or DOM documents, not the Java beans we like to use.</li>
+</ol>
+
+<p>This article will address the first issue, and in doing so make the second issue less of a worry.</p>
+
+<h3>Instantiation of the client</h3>
+
+<p>Our first task is to gracefully handle the instantiation of the Facebook client.  This will usually be required by most requests, hence, it is an ideal opportunity to use a ServletFilter.  The guys at <a href="http://www.theliveweb.net">TheLiveWeb</a> have already <a href="http://www.theliveweb.net/blog/2007/10/31/facebook-authentication-using-java/">provided</a> a very good article on how to do this, so I won't go into too much detail.  The servlet filter basically intercepts every request, checks to see if there is already a client in the session, and if not, uses the fb_session parameter if it's an embedded fbml app, or auth_token parameter if it's not an fbml app, to instantiate the client.  If neither of those parameters exist, it redirects the user to the login page.  The ServletFilter I've written is very different to theirs, but both follow the same concept and achieve the same goal.</p>
+
+<h3>Using a ThreadLocal to access the client</h3>
+
+<p>Our next task is to make the client available to the backend service beans that have no knowledge of the HTTP session.  We do this using a ThreadLocal.  We start by creating a wrapper class, UserClientBean, to wrap all calls to the client.  The client itself is stored in a private static ThreadLocal field:</p>
+
+<pre class="prettyprint"><code class="language-java">
+public class UserClientBean
+{
+    public static void setClient(FacebookXmlRestClient aClient)
+    {
+        client.set(aClient);
+    }
+    public static void remove()
+    {
+        client.remove();
+    }
+    private static final ThreadLocal<FacebookXmlRestClient> client
+        = new ThreadLocal<FacebookXmlRestClient>();
+    ...
+}
+</code></pre>
+
+<p>So calling UserClientBean.set() will bind a facebook client to the current thread, and UserClientBean.remove() will remove it.  We make these calls from the servlet filter:</p>
+
+<pre class="prettyprint"><code class="language-java">
+public void doFilter(ServletRequest aRequest, ServletResponse aResponse,
+        FilterChain aChain) throws IOException, ServletException
+{
+    if (aRequest instanceof HttpServletRequest)
+    {
+        HttpServletRequest request = (HttpServletRequest) aRequest;
+        HttpServletResponse response = (HttpServletResponse) aResponse;
+        HttpSession session = request.getSession();
+        FacebookXmlRestClient client = (FacebookXmlRestClient) session
+                    .getAttribute("facebookClient");
+        if (client == null)
+        {
+            String sessionKey = request
+                    .getParameter(FacebookParam.SESSION_KEY.toString());
+            String authToken = request.getParameter("auth_token");
+            if (sessionKey == null && authToken == null)
+            {
+                response.sendRedirect(loginPage);
+                return;
+            }
+            else
+            {
+                try
+                {
+                    if (sessionKey != null)
+                    {
+                        client = new FacebookXmlRestClient(apiKey, secret,
+                                sessionKey);
+                    }
+                    else
+                    {
+                        client = new FacebookXmlRestClient(apiKey, secret);
+                        client.auth_getSession(authToken);
+                    }
+                    client.setIsDesktop(false);
+                    session.setAttribute("facebookClient", client);
+                }
+                catch (FacebookException fe)
+                {
+                    log.error("Unable to log into facebook", fe);
+                }
+            }
+        }
+        // Store the client in the thread
+        UserClientBean.setClient(client);
+    }
+    aChain.doFilter(aRequest, aResponse);
+    // Remove the client from the thread
+    UserClientBean.remove();
+}
+</code></pre>
+
+<p>If you've never come across ThreadLocal's before, a ThreadLocal is a class that binds the object passed to its set() method to the current thread.  Calling the get() method will retrieve that object from the current thread, if it exists.  ThreadLocal's are usually declared as static final, so that they can be accessed statically from anywhere in the application.</p>
+
+<h3>Using the client</h3>
+
+<p>Now that we can access the client as a service, we can add calls as desired to UserClientBean to run on the FaceBookRestClient, and extract the data out in a way that's nice to return to our application.  For example:</p>
+
+<pre class="prettyprint"><code class="language-java">
+public List<Long> getAppFriends()
+{
+    List<Long> result = new ArrayList<Long>();
+    try
+    {
+        Document d = client.get().friends_getAppUsers();
+        Node n = d.getFirstChild();
+        while (n != null)
+        {
+            result.add(Long.parseLong(n.getTextContent()));
+            n = n.getNextSibling();
+        }
+    }
+    catch (Exception e)
+    {
+        log.error("Error retrieving logged in facebook user", e);
+    }
+    return result;
+}
+
+public boolean isFriend(long aFriendId)
+{
+    try
+    {
+        FacebookXmlRestClient c = client.get();
+        long user = c.users_getLoggedInUser();
+        if (user == aFriendId)
+        {
+            return true;
+        }
+        else
+        {
+            Document d = c.friends_areFriends((int) user, (int) aFriendId);
+            Node n = d.getElementsByTagName("are_friends").item(0);
+            if (n.getTextContent().equals("1"))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    catch (Exception e)
+    {
+        log.error("Error determining if users are friends", e);
+        return false;
+    }
+}
+</code></pre>
+
+<p>As you may have noticed, the FaceBookRestClient uses ints, while Facebook recommends user ids being stored as longs.  Not very smart huh?  At least using this client, our apps will be ready for that bug fix.</p>

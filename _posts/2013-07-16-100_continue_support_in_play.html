@@ -1,0 +1,139 @@
+---
+title: 100 Continue support in Play
+date: 2013/07/16 16:34
+tags: play scala http
+---
+<p>
+The <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.1.1">100 Continue</a> status code in the HTTP spec is one that most people know very little about.  You kind of read it, don't really understand what it's talking about, and then just skip over it.  I didn't know what it was about until I became a developer of a web framework.  It turns out to be very useful in certain situations.
+</p>
+
+<p>
+Let's say a client needs to make a very large upload, for example 1GB.  What happens if the server can't satisfy the clients request?  For example, what if the client submitted invalid authentication credentials?  Or the request content was too long?  Or the wrong media type?  HTTP is a half duplex protocol, the client and server take it in turns to speak.  This means that even though the server may know immediately after receiving the request header that it can't process the request, it still has to read the entire request body before it can tell the client that, even if that request body is a 1GB long and takes an hour to upload.  And if you've ever done any large HTTP uploads before, you'll know there's nothing more frustrating than getting to the end of a large upload, only get an error back from the server.
+</p>
+
+<p>
+HTTP has a solution to this, in the form of the <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.20"><tt>Expect</tt></a> request header.  The <tt>Expect</tt> header is used to tell the server that the client expects a certain behaviour of it.  There is one defined value for it in the HTTP spec, and that is <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html#sec8.2.3"><tt>100-continue</tt></a>.  This tells the server that after sending the request headers, the client will not send the body of the request until it has received a 100 continue response.  Otherwise, the server can immediately return with any other response code.  After receiving a 100 continue response, the client will continue to send the body, and once the server has consumed that, the server will send a second response.
+</p>
+
+<p>
+This can be used whenever the server wants to do validation of just the request headers.  Here are some examples:
+</p>
+
+<ul>
+<li>Authentication - if the client is not authenticated, the server can respond with 401 Unauthorized.</li>
+<li>Authorisation - if the client is not authorised to make the request, the server can respond with 403 Forbidden.</li>
+<li>Resource existence - if the client has attempted to put a resource at a location that doesn't exist, the server can respond with 404 Not Found</li>
+<li>Content length limits - if the client hasn't sent a content length, the server can respond with 411 Length Required, or if the content length is larger than the server is willing to accept, the server can respond with 413 Request Entity Too Large</li>
+<li>Content type validation - if the client is sending a content type that the server doesn't support, the server can respond with 415 Unsupported Media Type</li>
+</ul>
+
+<h2>100 continue support in Play Framework</h2>
+
+<p>
+So with all this in mind, how can this be implemented in Play framework?  As you may be aware, at the lowest level, a Play action looks like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+trait EssentialAction extends (RequestHeader =&gt; Iteratee[Array[Byte], Result])
+</code></pre>
+
+<p>
+The iteratee that the essential action function returns is what consumes the body.  An iteratee can be in one of three states, done, cont (ready to receive more input), or error.  When Play invokes an action to get the iteratee for the body, and a client has specified the <tt>Expect: 100-continue</tt> header, Play is able to check if that iteratee is ready to receive input, or if it's in a done or error state.  If it's in a done or error state, Play will send the result immediately without consuming the body.  If it's in the cont state, then Play will send a 100 continue response, and then feeds the body into the iteratee.
+</p>
+
+<p>
+So for an action to take advantage of this, it just needs to ensure that it returns a done iteratee if the validation fails.  Plays built in authentication action does just this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+def Authenticated[A](
+  userinfo: RequestHeader =&gt; Option[A],
+  onUnauthorized: RequestHeader =&gt; Result)(action: A =&gt; EssentialAction): EssentialAction = {
+
+  EssentialAction { request =&gt;
+    userinfo(request).map { user =&gt;
+      action(user)(request)
+    }.getOrElse {
+      Done(onUnauthorized(request), Input.Empty)
+    }
+  }
+}
+</code></pre>
+
+<p>
+In addition, all of Plays body parsers, when they check the content type, will return a done iteratee if the content type is wrong.  So if I have an action that looks like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+def upload = Authenticated(
+    rh =&gt; rh.headers.get("Authentication-Token").filter(_ == "secret-token"), 
+    rh =&gt; Forbidden("Authentication required")
+) { token =&gt; Action(parse.text) { request =>
+  Ok("Got body that was " + request.body.length + " characters long")
+}}
+</code></pre>
+
+<p>
+And then I submit the following request header:
+</p>
+
+<pre>
+POST /upload HTTP/1.1
+Host: localhost
+Authentication-Token: secret-token
+Content-Type: text/plain
+Content-Length: 12
+Expect: 100-continue
+</pre>
+
+<p>
+Play will immediately respond with:
+</p>
+
+<pre>
+100 Continue HTTP/1.1
+</pre>
+
+<p>
+At which point, I can then send my body, and Play will send the response.  The whole transaction will look like this:
+</p>
+
+<pre>
+<span style="color: blue">C: POST /upload HTTP/1.1
+C: Host: localhost
+C: Authentication-Token: secret-token
+C: Content-Type: text/plain
+C: Content-Length: 12
+C: Expect: 100-continue
+C: </span>
+S: HTTP/1.1 100 Continue
+S:
+<span style="color: blue">C: Hello world!</span>
+S: HTTP/1.1 200 OK
+S: Content-Type: text/plain;charset=utf-8
+S: Content-Length: 37
+S:
+S: Got body that was 12 characters long
+</pre>
+
+<p>
+However, if I don't send an authentication token, or if my content type is wrong, this is what will happen:
+</p>
+
+<pre>
+<span style="color: blue">C: POST /upload HTTP/1.1
+C: Host: localhost
+C: Content-Type: text/plain
+C: Content-Length: 12
+C: Expect: 100-continue
+C: </span>
+S: HTTP/1.1 403 Forbidden
+S: Content-Type: text/plain;charset=utf-8
+S: Content-Length: 23
+S:
+S: Authentication required
+</pre>
+
+<p>
+And so even though in the request header I said that the content length was 12, I didn't have to upload it, because I sent the expect header, and Play didn't send a 100 continue response back, instead it was able to immediately tell me that the request would fail.  Obviously with such a small body, this doesn't make a lot of sense, but with a body gigabytes in length, it means I don't have to spend however many hours uploading it before I finally find out that I wasn't allowed to upload it.
+</p>

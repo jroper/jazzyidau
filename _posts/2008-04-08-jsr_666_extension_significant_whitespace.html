@@ -1,0 +1,70 @@
+---
+title: JSR-666 Extension: Significant whitespace
+date: 2008/04/08 00:20
+tags: jsr-666
+---
+<p>
+In many software development teams that I've worked on, code reviews are done by printing out the code to be reviewed.  This is in turn read and scribbled on with red ink by developers suffering from a delusion that their coding standard is better than mine.  An example of some such code:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+public boolean equals(Object o)
+{
+   try
+   {
+      if (Calendar.getInstance().get(Calendar.MONTH) == 1
+            && Calendar.getInstance().get(Calendar.DATE) == 29)
+      {
+         return true;
+      }
+      else
+      {
+         Thread.sleep(10000);
+         return new Random().nextBoolean();
+      }
+   }
+   catch (Throwable t)
+   {
+      // Something must have gone wrong, try again
+      return new Random().nextBoolean();
+   }
+}
+</code></pre>
+
+<p>
+When reading the above code, the obvious problem that jumps out is that it contains no less than ten curly braces.  When printed for a code review, this is a waste of valuable ink.  The squids of the world have been working overtime to provide the ink needed to print out all the code that needs to be reviewed, it is about time we gave them a break.  I'd therefore like to propose to the <a href="http://fishbowl.pastiche.org/2003/02/03/jsr666">JSR-666 </a> expert group an extension that curly braces be replaced with significant whitespace.
+<p>
+
+<p>
+The previous code example would become:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+public boolean equals(Object o)
+   try
+      if (Calendar.getInstance().get(Calendar.MONTH) == 1
+            && Calendar.getInstance().get(Calendar.DATE) == 29)
+         return true;
+      else
+         Thread.sleep(10000);
+         return new Random().nextBoolean();
+   catch (Throwable t)
+      // Something must have gone wrong, try again
+      return new Random().nextBoolean();
+</code></pre>
+
+<p>
+A fine piece of code that would pass any code review.
+</p>
+
+<p>
+This feature will also solve a number of other problems, for example, it will eliminate the age old argument over whether braces belong on a newline or not.  It will also force developers to write neatly structured code.
+</p>
+
+<p>
+This feature will not require any JVM changes, but will require compiler changes.  Existing code may need to be changed, however, if the existing code was well formatted to begin with, it should suffice to simply run the following command in vim:
+</p>
+
+<pre>
+:%s/\{|\}//g
+</pre>

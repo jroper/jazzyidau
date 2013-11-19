@@ -1,0 +1,40 @@
+---
+title: What is wrong with Monads?
+date: 2013/06/05 17:46
+tags: scala monad
+---
+<p>
+Nothing is wrong with Monads.  What is wrong is how people communicate them.
+</p>
+
+<p>
+There are people out there that learn abstract concepts first, and then work out how to apply them to solving their every day problems.  Then there are people that learn how to solve their every day problems, and then they can understand how these solutions can be generalised into abstract concepts for solving problems.  I am firmly in the second camp, explain an abstract concept to me that I've never come across before, and it'll go in one ear and out the other.  Explain a solution to a problem that I have at hand, and I'll understand.  Tell me that the solution can be generalised into an abstract concept, and you won't need to tell me anything more about that abstract concept, I'll understand it immediately.
+</p>
+
+<p>
+I envy the people that can understand the abstract concepts first before applying them to real problems.  I really wish I had that ability.  But I don't.  And I don't think I'm alone.  I suspect many, maybe even most developers learn the same way that I do.
+</p>
+
+<p>
+So this is the problem with monads, the problem is too abstract.  I tried to read up about monads quite a number of times, and I always got stuck.  I even read about "burritos" and "semicolons", these simplifications just made me more confused.  None of the stuff I was reading made any sense to me.
+</p>
+
+<p>
+Then one day I started using Play 2.  Play 2 is an asynchronous web framework.  It heavily uses futures as a means to implement asynchronous code.  I had been writing some asynchronous code for a while before I had started using Play 2, and I knew how painful it could be.  When I saw futures in Play, it solved a problem that I had perfectly.  The ability to return a result that could then be mapped/flatMapped was exactly what I needed.
+</p>
+
+<p>
+I was so excited about this new discovery that I prepared and gave a presentation on Play's futures at the Berlin Play User Group.  I put forward a real world problem, and explained how Future, map and flatMap could solve it.  I got great feedback from everyone at the user group, it really helped a lot of people to understand asynchronous programming and futures.  At that point, I still had no idea what a monad was, yet somehow I was teaching others about monads.
+</p>
+
+<p>
+A while later I was at the Berlin Play User Group again, and a conversation about monads came up.  I admitted to everyone there that I didn't know what a monad was.  Someone looked at me funny, and said "it's basically just flatMap".  Suddenly it all made sense to me.  I went back and read the same papers and blog posts that I had tried to read before, and they all made perfect sense, I now had no problems understanding monads.
+</p>
+
+<p>
+So why didn't I understand monads before that?  What was missing was an explanation that was given within the context of a concrete problem that I could relate to.  Why was it missing?  Because monads are simply too abstract.  Each specific different monad solves a different concrete problem.  The option monad solves a problem involving values that might not exist.  The future monad solves a problem involving values that don't exist yet.  The sequence monad solves a problem involving a sequence of values.  And so on.  To explain the general concept of monads, you need to abstract it away from any of the specific concrete problems that each monad solves, into a general abstract problem.  And so if, to explain monads, you start with monads, you are at an abstraction level that is twice removed from real world problems.  That means if you try to explain them starting with the abstract concepts to someone such as myself, at best you'll just make my head explode.
+</p>
+
+<p>
+This is why I say, if you want to explain monads to a developer who is anything like me, don't start with monads.  Don't even use the word monad, the moment you do that you are throwing down a concrete wall in front of them 30 foot high that they will not be able to climb.  Start with a real world problem - asynchronous programming with futures is an excellent one, and talk about how to solve that.  Then maybe later talk about monads.  But by that stage, does it matter if they know what a monad is?  They've learnt the concepts already, probably well enough to give a presentation at a user group about them.
+</p>

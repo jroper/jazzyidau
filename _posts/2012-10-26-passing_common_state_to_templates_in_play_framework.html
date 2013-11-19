@@ -1,0 +1,100 @@
+---
+title: Passing common state to templates in Play Framework
+date: 2012/10/26 13:52
+tags: play scala templates
+---
+<p>
+This question comes up very frequently on the Play mailing list, so I thought I'd document a quick example of how to pass common state to shared templates in Play Framework when using Scala.  The use case is typically that you have a common header, but certain parts of it are dynamic, requiring data to be loaded from the database.
+</p>
+
+<p>
+First of all, since the state required for rendering a header can logically be grouped into one object, a header object, let's do that.  This will mean we can easily add new types of data to the header without changing any of our existing code.  So I'm going to define a header that contains a list of menu items, and the current user:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+case class Header(menu: Seq[MenuItem], user: Option[String])
+case class MenuItem(url: String, name: String)
+</code></pre>
+
+<p>
+Now the template that uses this is my main template, so I'm going to add my <tt>Header</tt> class to it as an implicit parameter.  Implicit parameters are parameters that don't need to be explicitly passed when you invoke a method, instead, if an implicit value exists in the scope of the invocation, that will be used:
+</p>
+
+<pre class="prettyprint"><code class="language-html">
+@(title: String)(content: Html)(implicit header: Header)
+
+&lt;html&gt;
+    &lt;head&gt;
+        ...
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;div id="header"&gt;
+            @header.user.map { user =>
+                &lt;div&gt;User: @user&lt;/div&gt;
+            }
+            &lt;ul&gt;
+            @for(item &lt;- header.menu) {
+                &lt;li&gt;&lt;a href="@item.url"&gt;@item.name&lt;/a&gt;&lt;/li&gt;
+            }
+            &lt;/ul&gt;
+        &lt;/div&gt;
+        @content
+    &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>
+Now to pass this implicit parameter, all I need to do is declare that each of my templates that use the main template also accept an implicit header parameter.  So for example, in my index template:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+@(message: String)(implicit header: Header)
+
+@main("Welcome to Play 2.0") {
+    @play20.welcome(message)
+}
+</code></pre>
+
+<p>
+Now comes the magic, supplying this parameter.  I will write an implicit method that generates it.  When a parameterless method (implicit parameters don't count as parameters in this case) is declared as implicit, this allows it to be used to supply a value for an implicit parameter.  Here's the my method:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+trait ProvidesHeader {
+
+  implicit def header[A](implicit request: Request[A]) : Header = {
+    val menu = Seq(MenuItem("/home", "Home"),
+      MenuItem("/about", "About"),
+      MenuItem("/contact", "Contact"))
+    val user = request.session.get("user")
+    Header(menu, user)
+  }
+}
+</code></pre>
+
+<p>
+For now I've just hard coded the menu items, but you get the point.  Since this method is implicit, and it returns something of type <tt>Header</tt>, then it can be used to supply the implicit <tt>Header</tt> parameter that our index template needs.  You can also see that this method itself accepts an implicit parameter, the request.  If your method doesn't need the request, then you can remove that, however make sure that you remove the parenthesis from the method, it will only work with parameterless methods, not zero argument methods.
+</p>
+
+<p>
+So what now do I need to do to my actions?  Almost nothing, I just need to make sure that my implicit <tt>header</tt> method is in scope, and that they declare the request they accept as an implicit parameter, so for example:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+object Application extends Controller with ProvidesHeader {
+
+  def index = Action { implicit request =>
+    Ok(views.html.index("Your new application is ready."))
+  }
+}
+</code></pre>
+
+<p>
+As you can see I've simply declared that my controller extends the <tt>ProvidesHeader</tt> trait.  My action code itself is left completely uncluttered, it doesn't need to know whether the templates it renders require a header, that's automatically provided, and in fact more implicit parameters could be added to my templates, and my action code still doesn't have to be aware of it.
+</p>
+
+<h2>A note for Java Play apps</h2>
+
+<p>
+Unfortunately this doesn't work so nicely for Java Play apps, since although you can still use implicit parameter passing in the templates, this needs to be explicitly handled by your actions.  As an alternative to implicit parameter passing, Play offers the <tt>args</tt> map for storing arbitrary per request data on the <tt>Http.Context</tt> class.  This can be populated through action composition, or however you want, and then accessed in your templates through the <tt>Http.Context.current</tt> thread local.
+</p>

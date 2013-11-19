@@ -1,0 +1,132 @@
+---
+title: ScalaFlect: Statically typed query DSLs
+date: 2012/04/23 05:16
+tags: scala reflection scalaflect
+---
+<p>
+I've been hard at work over the past few weeks redesigning my Mongo object mapper, the <a href="http://vznet.github.com/mongo-jackson-mapper">Mongo Jackson Mapper</a>, to support Jackson 2.0, be simpler to use, and be far more powerful with less surprises to users.  Something that has been at the front of my mind is how to make it nicer to use in Scala, and the biggest thing that I'd like to do here is implement the query and update APIs using a DSL that makes the queries look like ordinary code.  But there's a problem.  If you want your classes to be ordinary case classes, then when querying, you're going to have to refer to the properties using strings.  Strings that are very easy to make typos in, strings that don't get updated automatically when you refactor, strings that don't throw compile errors if they are wrong, and in the case of MongoDB queries, strings that don't even throw runtime errors if they are wrong.  Scala has no support for referring to a field, rather than its value, so unfortunately, strings are the only option.  That is, until now.
+</p>
+
+<p>
+Today I started a new open source project called <a href="https://github.com/jroper/scalaflect">ScalaFlect</a>.  It provides exactly what every query DSL implementor has been wanting, statically typed reflection.  It allows you to reference a field or a method, and the result being that you get the <tt>java.lang.reflect.Field/Method</tt> associated with it.  Before I go into the details of how I did this, let's first look at an example DSL that I've written to demonstrate the capabilities so far.
+</p>
+
+<h2>Example DSL usage</h2>
+
+<p>
+So to start off, I have some case classes, a <tt>BlogPost</tt>, and a <tt>Comment</tt>, with a one to many relationship between blog posts and comments:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+case class BlogPost(author: String, title: String, published: Boolean,
+  tags: Set[String], comments: List[Comment])
+case class Comment(author: String, text: String)
+</code></pre>
+
+<p>
+Now I have implemented my DSL by implementing an abstract class that provides the basic elements of my DSL.  This class is called <tt>ObjectListDao</tt>, and as the name suggests, it stores objects in a list.  But it could just as easily be storing objects in a database like MongoDB.  Let's look at a DAO that uses this DSL:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class BlogPostDao extends ObjectListDao(classOf[BlogPost]) {
+  import au.id.jazzy.scalaflect.ScalaFlect.toTraverser
+
+  def findByAuthor(author: String) = {
+    query(
+      $(_.author) %= author
+    )
+  }
+
+  def findPublishedByTag(tag: String) = {
+    query(
+      $(_.tags.$) %= tag,
+      $(_.published) %= true
+    )
+  }
+
+  def findPostsCommentedOnByAuthor(author: String) = {
+    query(
+      $(_.comments.$.author) %= author
+    )
+  }
+}
+</code></pre>
+
+<p>
+So the first thing you notice is the static access to properties.  The <tt>$</tt> method accepts a function that accepts a parameter of type <tt>BlogPost</tt>, and the function should return the property that you want to reference.  You can also see that using the <tt>$</tt> operator on a collection, you can refer to properties in that collections type.
+</p>
+
+<h2>Example DSL definition</h2>
+
+<p>
+So how have I implemented my DSL?  Quite simply.  Here is the code:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class ObjectListDao[T](val clazz: Class[T]) {
+  private val scalaFlect = new ScalaFlect(clazz)
+  private val list = new ListBuffer[T]
+
+  def $[R](f : T =&gt; R): QueryField[R] = new QueryField(scalaFlect.reflect(f))
+  
+  def query(exps: QueryExpression*) = {
+    var results = list.toList
+    for (exp &lt;- exps) {
+      results = results.filter(exp.matches(_))
+    }
+    results.toList
+  }
+
+  def save(obj: T) {
+    list += obj
+  }
+}
+
+class QueryField[R](val field: Member[R]) {
+  def %=(value: R): QueryExpression = new QueryExpression {
+    def matches(obj: Any) = !(field.get(obj) filter {v: Any =&gt; v == value} isEmpty)
+  }
+}
+
+trait QueryExpression {
+  def matches(obj: Any): Boolean
+}
+</code></pre>
+
+<p>
+Here we have an instance of <tt>ScalaFlect</tt> for our class (in the example usage, this was <tt>BlogPost</tt>).  The <tt>$</tt> method simply invokes <tt>reflect()</tt> on this, which is what does the reflection.  <tt>reflect()</tt> returns a <tt>Member</tt>.  A <tt>Member</tt> is a reference to a series of methods and fields that were invoked by the reflection function.  Using it, you can get access to the Java reflection API classes that represent these methods and fields.
+</p>
+
+<p>
+The other thing to note is the implementation of <tt>matches</tt>.  This is where the <tt>Member</tt> class is actually used.  If this was a DSL for something like MongoDB, then at this point the <tt>Memmber</tt> and its parents would be inspected to build a query object, which would then be sent to the database.  In our case though we're just operating on a list of objects that we already have in memory, and <tt>Member</tt> provides a convenient <tt>get</tt> function that gets all the values of that property for a given object.  Note that I said values, not value, ScalaFlect allows stepping into collections using the <tt>$</tt> operator, so if the reference goes through a collection, then multiple values might be returned.
+</p>
+
+<h2>Implementation</h2>
+
+<p>
+At this point, especially if you've thought about how to do this before, you're probably wondering how on earth I've implemented this.  The passed in reflection function is never executed.  An important thing to remember in Scala is that functions are actually classes themselves.  ScalaFlect simply takes the function class, decompiles it, finds the <tt>apply</tt> method, and then does some fairly simple analysis on the code to find out what properties were referenced.  By fairly simple, I mean I wrote it in 2 hours.  The result is cached so each function is only ever analysed once.
+</p>
+
+<p>
+Ok, so this sounds like a hack, and it is.  And it certainly has its limitations.  The behaviour if you put complex code into your reflection function is completely undefined (it will most likely throw an exception, in future I'll add some decent error handling).  However, it's a hack that will work well - there is nothing magic about how a Scala function that invokes some methods/accesses some fields on the passed in argument and returns the result is compiled down to bytecode.  I don't expect that anything will be added to Scala in future that might break this.
+</p>
+
+<p>
+One limitation that I do anticipate though is working with hot swapped code.  I imagine, if you update a query, and hotswap it into a running JVM, there will be no way for ScalaFlect to either detect that, or even analyse it if it could.  This is because the way ScalaFlect decompiles the bytecode is by loading the class from the reflection functions classloader.  I actually have no idea how hot swapping works, but I suspect that it doesn't update the bytecode that the classloader sees.  The same goes for any runtime generated and enhanced code, but maybe that issue is not as likely to ever cause a problem.
+</p>
+
+<h2>The future</h2>
+
+<p>
+I read somewhere that Scala 2.10 is getting improved reflection, but I don't know what that means.  The need for this library can be completely removed if Scala added language level features for referring to a field, and not it's value, in code.  My ideal outcome from implementing ScalaFlect is that the value of such a feature will be realised, and hence added to Scala.  In the meantime, ScalaFlect will work nicely at giving DSL writers statically typed reflection.
+</p>
+
+<p>
+So check out the library on <a href="https://github.com/jroper/scalaflect">GitHub</a>, and feel free to comment on my approach.  I haven't cut a release yet, but I'll get to that and deploy a beta to Maven central in the coming days (depending on how fast Sonatype will process my request to deploy to my domains groupId).
+</p>
+
+<h2>Update</h2>
+
+<p>
+It's just been pointed out to me that Scala 2.10 will (might?) have macro support, which would achieve this (and potentially much more) in a much cleaner fashion.  This is great news for writing query DSLs.  I don't know though what the state of the macro support is, it's marked as experimental and doesn't seem to be really mentioned in any Scala 2.10 feature lists.  So maybe ScalaFlect might have some time to serve some useful purpose yet.
+</p>

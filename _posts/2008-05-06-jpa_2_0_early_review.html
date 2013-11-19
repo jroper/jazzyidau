@@ -1,0 +1,16 @@
+---
+title: JPA 2.0 - Early Review
+date: 2008/05/06 22:15
+tags: jpa toplink hibernate java
+---
+<p>
+A few days ago, <a href="http://jcp.org/en/jsr/detail?id=317">JSR-317</a>, the specification request for JPA 2.0, released an <a href="http://jcp.org/aboutJava/communityprocess/edr/jsr317/index.html">early draft review</a> of the specification.  Today I had the chance to skim through it to see what new things it had to offer.
+</p>
+
+<p>
+Something I commented on in an <a href="2008/03/24/jpa_2_0_new_features_part_1.html">earlier</a> blog post was how they might implement deleting orphan members of an association.  Would they follow TopLink's private collection mapping, or use Hibernate's additional delete orphan cascade type?  It turns out, they chose neither... or rather, they met half way.  The EDR specifies the addition of a boolean <tt>orphanRemoval</tt> attribute on the <tt>@OneToMany</tt> and <tt>@OneToOne</tt> annotations.  So the terminology follows the Hibernate orphan terminology, however hibernate uses a <tt>DELETE_ORPHAN</tt> cascade type.  The method though is more similar to TopLink, which has private ownership as a property of a collection mapping.
+</p>
+
+<p>
+I don't think that I like this way of doing it.  I don't think it's consistent, if I want a new entity to be persisted just by adding it to a collection, then I specify <tt>cascade=PERSIST</tt>.  But if I want an existing entity to be deleted just by removing it from a collection, then I specify <tt>orphanRemoval=true</tt>.  Cascading persistence to members added to collections and removing orphaned elements are both similar operations, in that they indirectly change the life cycle state of an entity, that occur at flush time, in a cascade like manner.  I think it would be more consistent to say <tt>cascade=ORPHAN_REMOVE</tt>.  The expert group has made a note in the EDR asking for input on which strategy they should use.
+</p>

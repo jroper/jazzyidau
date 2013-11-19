@@ -1,0 +1,154 @@
+---
+title: Cracking Random Number Generators - Part 3
+date: 2010/09/22 23:07
+tags: prng
+---
+<p>
+In <a href="2010/09/20/cracking_random_number_generators_part_1.html">Part 1</a> and <a href="2010/09/21/cracking_random_number_generators_part_2.html">Part 2</a> of this series we focussed on one of the simplest PRNG's, the linear congruential PRNG.  We looked at detail into Java's implementation, and then wrote algorithms to crack the seed, and to calculate previous seeds from the current seed.
+</p>
+
+<p>
+Not many other languages use a linear congruential PRNG.  Originally, the C and C++ implementations of <tt>rand()</tt> were very simple linear congruential PRNGs, but these days they use more complex algorithms to generate higher quality random numbers.  PHPs <tt>rand()</tt> function delegates to the platforms <tt>rand()</tt> function, so depending on the platform, it may be a linear congruential PRNG.
+</p>
+
+<p>
+A much more popular PRNG algorithm is the Mersenne Twister.  This is used by Ruby's <tt>rand()</tt> function, Pythons <tt>random</tt> module, and PHP's <tt>mt_rand()</tt> function.
+</p>
+
+<p>
+The Mersenne Twister was invented in 1997.  The most common implementation of it uses an internal state of 624 32 bit words (integers).  These integers are handed out sequentially, applying a transform algorithm to each one before handing them out.  Once all 624 integers have been handed out, an algorithm is applied to the state, to get the next 624 integers.
+</p>
+
+<h2>Generating the next state</h2>
+
+<p>
+The algorithm for generating the next state is simple, it heavily uses bitwise operations such as shifts, masks and xors.  The algorithm is as follows:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+int[] state;
+// Iterate through the state
+for (i = 0; i &lt; 624; i++) {
+  // y is the first bit of the current number,
+  // and the last 31 bits of the next number
+  int y = (state[i] &amp; 0x80000000) + (state[(i + 1) % 624] &amp; 0x7fffffff);
+  // first bitshift y by 1 to the right
+  int next = y &gt;&gt;&gt; 1;
+  // xor it with the 397th next number
+  next ^= state[(i + 397) % 624];
+  // if y is odd, xor with magic number
+  if ((y &amp; 1L) == 1L) {
+    next ^= 0x9908b0df;
+  }
+  // now we have the result
+  state[i] = next;
+}
+</code></pre>
+
+<h2>Obtaining the next number</h2>
+
+<p>
+Before handing the next integer out, a transform is applied to each integer.  This transform has 4 steps, each step involves xoring the number with a bit shifted and bit masked version of itself.  The algorithm is as follows:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+currentIndex++;
+int tmp = state[currentIndex];
+tmp ^= (tmp &gt;&gt;&gt; 11);
+tmp ^= (tmp &lt;&lt; 7) &amp; 0x9d2c5680;
+tmp ^= (tmp &lt;&lt; 15) &amp; 0xefc60000;
+tmp ^= (tmp &gt;&gt;&gt; 18);
+return tmp;
+</code></pre>
+
+<h2>Cracking the Mersenne Twister</h2>
+
+<p>
+Since the Mersenne Twister contains 624 integers of internal state that it hands out sequentially, obtaining 624 consecutive integers from the generator is the first step in cracking it.  In a common webapp, this might be done by issuing 624 requests, and recording the token.  If we can then undo the transform applied to these integers, we will then have the complete internal state.  Having calculated that, we can predict every subsequent number.
+</p>
+
+<p>
+In order to undo the transform, we will take it one step at a time, in reverse order.  The step of the transform we need to understand first is therefore:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+tmp ^= (tmp &gt;&gt;&gt; 18);
+</code></pre>
+
+<p>
+Let's look at what this looks like in binary:
+</p>
+
+<pre>
+<b>101101110101111001</b>11111001110010                    <i>tmp</i>
+00000000000000000010110111010111<span style="color: #AAA">100111111001110010</span>  <i>tmp &gt;&gt;&gt; 18</i>
+<b>101101110101111001</b>01001110100101                    <i>tmp ^ (tmp &gt;&gt;&gt; 18)</i>
+</pre>
+
+<p>
+As is clear from the bold bits above, we can easily work out what the first 18 bits of the previous number was, they are the same as the result.  Taking those 18 bits, we can bitshift them across 18 bits, and xor them with the value, this will give us the entire number.  A generalised algorithm can be written to do this for any arbitrary number of bits, and we can reuse this to reverse the first step as well:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+int unBitshiftRightXor(int value, int shift) {
+  // we part of the value we are up to (with a width of shift bits)
+  int i = 0;
+  // we accumulate the result here
+  int result = 0;
+  // iterate until we've done the full 32 bits
+  while (i * shift &lt; 32) {
+    // create a mask for this part
+    int partMask = (-1 &lt;&lt; (32 - shift)) &gt;&gt;&gt; (shift * i);
+    // obtain the part
+    int part = value &amp; partMask;
+    // unapply the xor from the next part of the integer
+    value ^= part &gt;&gt;&gt; shift;
+    // add the part to the result
+    result |= part;
+    i++;
+  }
+  return result;
+}
+</code></pre>
+
+<p>
+This method can be used to reverse the two right bitshift operations.  The left bitshift operations also include masking the bitshifted number with a magic number, so when we unapply <tt>part</tt> as above, we have to apply the mask to it, as follows:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+int unBitshiftLeftXor(int value, int shift, int mask) {
+  // we part of the value we are up to (with a width of shift bits)
+  int i = 0;
+  // we accumulate the result here
+  int result = 0;
+  // iterate until we've done the full 32 bits
+  while (i * shift &lt; 32) {
+    // create a mask for this part
+    int partMask = (-1 &gt;&gt;&gt; (32 - shift)) &lt;&lt; (shift * i);
+    // obtain the part
+    int part = value &amp; partMask;
+    // unapply the xor from the next part of the integer
+    value ^= (part &lt;&lt; shift) &amp; mask;
+    // add the part to the result
+    result |= part;
+    i++;
+  }
+  return result;
+}
+</code></pre>
+
+<p>
+Using these two functions, we can unapply the transformation applied to the numbers coming out of the PRNG:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+int value = output;
+value = unBitshiftRightXor(value, 18);
+value = unBitshiftLeftXor(value, 15, 0xefc60000);
+value = unBitshiftLeftXor(value, 7, 0x9d2c5680);
+value = unBitshiftRightXor(value, 11);
+</code></pre>
+
+<p>
+Having applied the above algorithm to 624 consecutive numbers from the PRNG, we now have the complete state of the Mersenne Twister, and can easily determine every subsequent value.  In <a href="2010/09/25/cracking_random_number_generators_part_4.html">Part 4</a> of the series, we'll investigate how to find previous values generated by the Mersenne Twister, and also discuss how to deal with being unable to get consecutive numbers out of the PRNG.
+</p>

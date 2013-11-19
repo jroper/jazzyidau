@@ -1,0 +1,283 @@
+---
+title: Understanding the Play Filter API
+date: 2013/02/16 02:30
+tags: scala play
+---
+<p>
+With Play 2.1 hot off the press, there have been a lot of people asking about the new Play filter API.  In actual fact, the API is incredibly simple:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+trait EssentialFilter {
+  def apply(next: EssentialAction): EssentialAction
+}
+</code></pre>
+
+<p>
+Essentially, a filter is just a function that takes an action and returns another action.  The usual thing that would be done by the filter is wrap the action, invoking it as a delegate.  To then add a filter to your application, you just add it to your Global <code>doFilter</code> method.  We provide a helper class to do that for you:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+object Global extends WithFilters(MyFilter) {
+  ...
+}
+</code></pre>
+
+<p>
+Easy right?  Wrap the action, register it in global.  Well, it is easy, but only if you understand Plays architecture.  This is very important, because once you understand Play's architecture, you will be able to do far more with Play.  We have some documentation <a href="http://www.playframework.com/documentation/2.1.0/HttpApi">here</a> that explains Plays architecture at a high level.  In this blog post, I'm going to explain Play's architecture in the context of filters, with code snippets and use cases along the way.
+</p>
+
+<h2>A short introduction to Plays architecture</h2>
+
+<p>
+I don't need to go in depth here because I've already provided a link to our architecture documentation, but in short Play's architecture matches the flow of an HTTP request very well.
+</p>
+
+<p>
+The first thing that arrives when an HTTP request is made is the request header.  So an action in Play therefore must be a function that accepts a request header.
+</p>
+
+<p>
+What happens next in an HTTP request?  The body is received.  So, the function that receives the request must return something that consumes the body.  This is an iteratee, which is a reactive stream handler, that eventually produces a single result after consuming the stream.  You don't necessarily need to understand the details about how iteratees work in order to understand filters, the important thing to understand is that iteratees eventually produce a result that you can map, just like a future, using their <code>map</code> function.  For details on writing iteratees, read <a href="http://jazzy.id.au/default/2012/11/06/iteratees_for_imperative_programmers.html">my blog post</a>.
+</p>
+
+<p>
+The next thing that happens in an HTTP request is that the http response must be sent.  So what is the result that of the iteratee?  An HTTP response.  And an HTTP response is a set of response headers, followed by a response body.  The response body is an enumerator, which is a reactive stream producer.
+</p>
+
+<p>
+All of this is captured in Plays <code>EssentialAction</code> trait:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+trait EssentialAction extends (RequestHeader =&gt; Iteratee[Array[Byte], Result])
+</code></pre>
+
+<p>
+This reads that an essential action is a function that takes a request header and returns an iteratee that consumes the byte array body chunks and eventually produces a result.
+</p>
+
+<h2>The simpler way</h2>
+
+<p>
+Before I go on, I'd like to point out that Play provides a helper trait called <code>Filter</code> that makes writing filters easier than when using <code>EssentialFilter</code>.  This is similar to the <code>Action</code> trait, in that <code>Action</code> simplifies writing <code>EssentialAction</code>'s by not needing to worry about iteratees and how the body is parsed, rather you just provide a function that takes a request with a parsed body, and return a result.  The <code>Filter</code> trait simplifies things in a similar way, however I'm going to leave talking about that until the end, because I think it is better to understand how filters work from the bottom up before you start using the helper class.
+</p>
+
+<h2>The noop filter</h2>
+
+<p>
+To demonstrate what a filter looks like, the first thing I will show is a noop filter:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class NoopFilter extends EssentialFilter {
+  def apply(next: EssentialAction) = new EssentialAction {
+    def apply(request: RequestHeader) = {
+      next(request)
+    }
+  }
+}
+</code></pre>
+
+<p>
+Each time the filter is executed, we create a new <code>EssentialAction</code> that wraps it.  Since <code>EssentialAction</code> is just a function, we can just invoke it, passing the passed in request.  So the above is our basic pattern for implementing an <code>EssentialFilter</code>.
+</p>
+
+<h2>Handling the request header</h2>
+
+<p>
+Let's say we want to look at the request header, and conditionally invoke the wrapped action based on what we inspect.  An example of a filter that would do that might be a blanket security policy for the <code>/admin</code> area of your website.  This might look like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class AdminFilter extends EssentialFilter {
+  def apply(next: EssentialAction) = new EssentialAction {
+    def apply(request: RequestHeader) = {
+      if (request.path.startsWith("/admin") && request.session.get("user").isEmpty) {
+        Iteratee.ignore[Array[Byte]].map(_ => Results.Forbidden())
+      } else {
+        next(request)
+      }
+    }
+  }
+}
+</code></pre>
+
+<p>
+You can see here that since we are intercepting the action before the body has been parsed, we still need to provide a body parser when we block the action.  In this case we are returning a body parser that will simply ignore the whole body, and mapping it to have a result of forbidden.
+</p>
+
+<h2>Handling the body</h2>
+
+<p>
+In some cases, you might want to do something with the body in your filter.  In some cases, you might want to parse the body.  If this is the case, consider using <a href="http://www.playframework.com/documentation/2.1.0/ScalaActionsComposition">action composition</a> instead, because that makes it possible to hook in to the action processing after the action has parsed the body.  If you want to parse the body at the filter level, then you'll have to buffer it, parse it, and then stream it again for the action to parse again.
+</p>
+
+<p>
+However there are some things that can be easily be done at the filter level.  One example is gzip decompression.  Play framework already provides gzip decompression out of the box, but if it didn't this is what it might look like (using the gunzip enumeratee from my <a href="https://github.com/jroper/play-iteratees-extras">play extra iteratees project</a>):
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class GunzipFilter extends EssentialFilter {
+  def apply(next: EssentialAction) = new EssentialAction {
+    def apply(request: RequestHeader) = {
+      if (request.headers.get("Content-Encoding").exists(_ == "gzip")) {
+        Gzip.gunzip() &amp;&gt;&gt; next(request)
+      } else {
+        next(request)
+      }
+    }
+  }
+}
+</code></pre>
+
+<p>Here using iteratee composition we are wrapping the body parser iteratee in a gunzip enumeratee.</p>
+
+<h2>Handling the response headers</h2>
+
+<p>
+When you're filtering you will often want to do something to the response that is being sent.  If you just want to add a header, or add something to the session, or do any write operation on the response, without actually reading it, then this is quite simple.  For example, let's say you wanted to add a custom header to every response:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class SosFilter extends EssentialFilter {
+  def apply(next: EssentialAction) = new EssentialAction {
+    def apply(request: RequestHeader) = {
+      next(request).map(result =&gt; 
+        result.withHeaders("X-Sos-Message" -&gt; "I'm trapped inside Play Framework please send help"))
+    }
+  }
+}
+</code></pre>
+
+<p>
+Using the <code>map</code> function on the iteratee that handles the body, we are given access to the result produced by the action, which we can then modify as demonstrated.
+</p>
+
+<p>
+If however you want to read the result, then you'll need to unwrap it.  Play results are either <code>AsyncResult</code> or <code>PlainResult</code>.  An <code>AsyncResult</code> is a <code>Result</code> that contains a <code>Future[Result]</code>.  It has a <code>transform</code> method that allows the eventual <code>PlainResult</code> to be transformed.  A <code>PlainResult</code> has a header and a body.
+</p>
+
+<p>
+So let's say you want to add a timestamp to every newly created session to record when it was created.  This could be done like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class SessionTimestampFilter extends EssentialFilter {
+  def apply(next: EssentialAction) = new EssentialAction {
+    def apply(request: RequestHeader) = {
+
+      def addTimestamp(result: PlainResult): Result = {
+        val session = Session.decodeFromCookie(Cookies(result.header.headers.get(HeaderNames.COOKIE)).get(Session.COOKIE_NAME))
+        if (!session.isEmpty) {
+          result.withSession(session + ("timestamp" -&gt; System.currentTimeMillis.toString))
+        } else {
+          result
+        }
+      }
+
+      next(request).map {
+        case plain: PlainResult =&gt; addTimestamp(plain)
+        case async: AsyncResult =&gt; async.transform(addTimestamp)
+      }
+    }
+  }
+}
+</code></pre>
+
+<h2>Handling the response body</h2>
+
+<p>
+The final thing you might want to do is transform the response body.  <code>PlainResult</code> has two implementations, <code>SimpleResult</code>, which is for bodies with no transfer encoding, and <code>ChunkedResult</code>, for bodies with chunked transfer encoding.  <code>SimpleResult</code> contains an enumerator, and <code>ChunkedResult</code> contains a function that accepts an iteratee to write the result out to.
+</p>
+
+<p>
+An example of something you might want to do is implement a gzip filter.  A very naive implementation (as in, do not use this, instead use my complete implementation from my <a href="https://github.com/jroper/play-iteratees-extras">play extra iteratees project</a>) might look like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class GzipFilter extends EssentialFilter {
+  def apply(next: EssentialAction) = new EssentialAction {
+    def apply(request: RequestHeader) = {
+
+      def gzipResult(result: PlainResult): Result = result match {
+        case simple @ SimpleResult(header, content) =&gt; SimpleResult(header.copy(
+          headers = (header.headers - "Content-Length") + ("Content-Encoding" -&gt; "gzip")
+        ), content &amp;&gt; Enumeratee.map(a =&gt; simple.writeable.transform(a)) &amp;&gt; Gzip.gzip())
+      }
+
+      next(request).map {
+        case plain: PlainResult =&gt; gzipResult(plain)
+        case async: AsyncResult =&gt; async.transform(gzipResult)
+      }
+    }
+  }
+}
+</code></pre>
+
+<h2>Using the simpler API</h2>
+
+<p>
+Now you've seen how you can achieve everything using the base <code>EssentialFilter</code> API, and hopefully therefore you understand how filters fit into Play's architecture and how you can utilise them to achieve your requirements.  Let's now have a look at the simpler API:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+trait Filter extends EssentialFilter {
+  def apply(f: RequestHeader =&gt; Result)(rh: RequestHeader): Result
+  def apply(next: EssentialAction): EssentialAction = {
+    ...
+  }
+}
+
+object Filter {
+  def apply(filter: (RequestHeader =&gt; Result, RequestHeader) =&gt; Result): Filter = new Filter {
+    def apply(f: RequestHeader =&gt; Result)(rh: RequestHeader): Result = filter(f,rh)
+  }
+}
+</code></pre>
+
+<p>
+Simply put, this API allows you to write filters without having to worry about body parsers.  It makes it look like actions are just functions of request headers to results.  This limits the full power of what you can do with filters, but for many use cases, you simply don't need this power, so using this API provides a simple alternative.
+</p>
+
+<p>
+To demonstrate, a noop filter class looks like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class NoopFilter extends Filter {
+  def apply(f: (RequestHeader) =&gt; Result)(rh: RequestHeader) = {
+    f(rh)
+  }
+}
+</code></pre>
+
+<p>
+Or, using the <code>Filter</code> companion object:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+val noopFilter = Filter { (next, req) =&gt;
+  next(req)
+}
+</code></pre>
+
+<p>
+And a request timing filter might look like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+val timingFilter = Filter { (next, req) =&gt;
+  val start = System.currentTimeMillis
+
+  def logTime(result: PlainResult): Result = {
+    Logger.info("Request took " + (System.currentTimeMillis - start))
+    result
+  }
+
+  next(req) match {
+    case plain: PlainResult =&gt; logTime(plain)
+    case async: AsyncResult =&gt; async.transform(logTime)
+  }
+}
+</code></pre>

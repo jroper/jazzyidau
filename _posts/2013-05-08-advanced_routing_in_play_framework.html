@@ -1,0 +1,261 @@
+---
+title: Advanced routing in Play Framework
+date: 2013/05/08 01:51
+tags: scala play
+---
+<p>
+We frequently get questions about how to meet all sorts of different routing needs in Play Framework.  While the built in router is enough for most users, sometimes you may encounter use cases where it's not enough.  Or, maybe you want a more convenient way to implement some routing pattern.  Whatever it is, Play will allow you to do pretty much anything.  This blog post is going to describe some common use cases.
+</p>
+
+<h2>Hooking into Plays routing mechanism</h2>
+
+<p>
+If for some reason you don't like Plays router, or if you want to use a modified router, then Play allows you to do this easily.  <tt>Global.onRouteRequest</tt> is the method that is invoked to do routing.  By default, this delegates to the Play router, but you can override it to do whatever you want.  For example:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+override def onRouteRequest(req: RequestHeader): Option[Handler] = {
+  (req.method, req.path) match {
+    case ("GET", "/") =&gt; Some(controllers.Application.index)
+    case ("POST", "/submit") =&gt; Some(controllers.Application.submit)
+    case _ =&gt; None
+  }
+}
+</code></pre>
+
+<p>
+As you can see, I've practically implemented my own little routing DSL here.  I could also delegate back to the default router by invoking <tt>super.onRouteRequest(req)</tt>.
+</p>
+
+<p>
+An interesting thing that could also be done is to delegate to different routers based on something in the request.  A play router compiles to an instance of <tt>Router.Routes</tt>, and it will be an object called <tt>Routes</tt> itself.  By default, any file with the <tt>.routes</tt> extension in the <tt>conf</tt> directory will by compiled, and will go in the package with the same name as the filename, minus the <tt>.routes</tt>.  So if I had two routers, <tt>foo.routes</tt> and <tt>bar.routes</tt>, I could implemented a crude form of virtual hosting like so:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+override def onRouteRequest(req: RequestHeader): Option[Handler] = {
+  if (req.host == "foo.example.com") {
+    foo.Routes.routes.lift(req)
+  } else if (req.host == "bar.example.com") {
+    bar.Routes.routes.lift(req)
+  } else {
+    super.onRouteRequest(req)
+  }
+}
+</code></pre>
+
+<p>
+So here are some use cases that overriding <tt>onRouteRequest</tt> may be useful for:
+</p>
+
+<ul>
+<li>Modifying the request in some way before routing is done</li>
+<li>Plugging in a completely different router (eg, jaxrs)</li>
+<li>Delegating to different routes files based on some aspect of the request</li>
+</ul>
+
+<h2>Implementing a custom router</h2>
+
+<p>
+We saw in the previous example how to use Plays <tt>Router.Routes</tt> interface, another option is to implement it.  Now, there's no real reason to implement it if you're just going to delegate to it directly from <tt>onRouteRequest</tt>.  However, by implementing this interface, you can include it in another routes file, using the sub routes include syntax, which in case you haven't come across this before, typically looks like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+-&gt;    /foo         foo.Routes
+</code></pre>
+
+<p>
+Now something that people often criticise Play for is that it doesn't support rails style resource routing, where a convention is used to route commonly needed REST endpoints to particular methods on a controller.  Although Play comes with nothing out of the box that does this, it is not hard to implement this today for your project, Play 2.1 has everything you need to support it, by using the routes includes syntax, and implementing your own router.  And I have some good news too, we will be introducing a feature like this into Play soon.  But until then, and also if you have your own custom conventions that you want to implement, you will probably find these instructions very helpful.
+</p>
+
+<p>
+So let's start off with an interface that our controllers can implement:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+trait ResourceController[T] extends Controller {
+  def index: EssentialAction
+  def newScreen: EssentialAction
+  def create: EssentialAction
+  def show(id: T): EssentialAction
+  def edit(id: T): EssentialAction
+  def update(id: T): EssentialAction
+  def destroy(id: T): EssentialAction
+}
+</code></pre>
+
+<p>
+I could provide default implementations that return not implemented, but then implementing it would require using <tt>override</tt> keywords.  I think it's a matter of preference here.
+</p>
+
+<p>
+Now I'm going to write a router.  The router interface looks like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+trait Routes {
+  def routes: PartialFunction[RequestHeader, Handler]
+  def documentation: Seq[(String, String, String)]
+  def setPrefix(prefix: String)
+  def prefix: String
+}
+</code></pre>
+
+<p>
+The <tt>routes</tt> method is pretty self explanatory, it is the function that looks up the handler for a request.  <tt>documentation</tt> is used to document the router, it is not mandatory, but it used by at least one REST API documenting tool to discover what routes are available and what they look like.  For brevity in this post, we won't worry about implementing it.  The <tt>prefix</tt> and <tt>setPrefix</tt> methods are used by Play to inject the path of the router.  In the routes includes syntax that I showed above, you could see that we declared the router to be on the path <tt>/foo</tt>.  This path is injected using this mechanism.
+</p>
+
+<p>
+So we'll write an abstract class that implements the routes interface and the <tt>ResourceController</tt> interface:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+abstract class ResourceRouter[T](implicit idBindable: PathBindable[T]) 
+    extends Router.Routes with ResourceController[T] {
+  private var path: String = ""
+  def setPrefix(prefix: String) {
+    path = prefix
+  }
+  def prefix = path
+  def documentation = Nil
+  def routes = ...
+}
+</code></pre>
+
+<p>
+I've given it a <tt>PathBindable</tt>, this is so that we have a way to convert the <tt>id</tt> from a <tt>String</tt> extracted from the path to the type accepted by the methods.  <tt>PathBindable</tt> is the same interface that's used under the covers when in a normal routes file to convert types.
+</p>
+
+<p>
+Now for the implementation of <tt>routes</tt>.  First I'm going to create some regular expressions for matching the different paths:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+  private val MaybeSlash = "/?".r
+  private val NewScreen = "/new/?".r
+  private val Id = "/([^/]+)/?".r
+  private val Edit = "/([^/]+)/edit/?".r
+</code></pre>
+
+<p>
+I'm also going to create a helper function for the routes that require the id to be bound:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+def withId(id: String, action: T =&gt; EssentialAction) = 
+  idBindable.bind("id", id).fold(badRequest, action)
+</code></pre>
+
+<p>
+<tt>badRequest</tt> is actually a method on <tt>Router.Routes</tt> that takes the error message and turns it into an action that returns that as a result.  Now I'm ready to implement the partial function:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+def routes = new AbstractPartialFunction[RequestHeader, Handler] {
+  override def applyOrElse[A &lt;: RequestHeader, B &gt;: Handler](rh: A, default: A =&gt; B) = {
+    if (rh.path.startsWith(path)) {
+      (rh.method, rh.path.drop(path.length)) match {
+        case ("GET", MaybeSlash()) =&gt; index
+        case ("GET", NewScreen()) =&gt; newScreen
+        case ("POST", MaybeSlash()) =&gt; create
+        case ("GET", Id(id)) =&gt; withId(id, show)
+        case ("GET", Edit(id)) =&gt; withId(id, edit)
+        case ("PUT", Id(id)) =&gt; withId(id, update)
+        case ("DELETE", Id(id)) =&gt; withId(id, destroy)
+        case _ =&gt; default(rh)
+      }
+    } else {
+      default(rh)
+    }
+  }
+
+  def isDefinedAt(rh: RequestHeader) = ...
+}
+</code></pre>
+
+<p>
+I've implemented <tt>AbstractPartialFunction</tt>, and the main method to implement then is <tt>applyOrElse</tt>.  The match statement doesn't look much unlike the mini DSL I showed in the first code sample.  I'm using regular expressions as extractor objects to extract the ids out of the path.  Note that I haven't shown the implementation of <tt>isDefinedAt</tt>.  Play actually won't call this, but it's good to implement it anyway, it's basically the same implementation as <tt>applyOrElse</tt>, except instead of invoking the corresponding methods, it returns <tt>true</tt>, or for when nothing matches, it returns <tt>false</tt>.
+</p>
+
+<p>
+And now we're done.  So what does using this look like?  My controller looks like this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+package controllers
+
+object MyResource extends ResourceRouter[Long] {
+  def index = Action {...}
+  def create(id: Long) = Action {...}
+  ...
+  def custom(id: Long) = Action {...}
+}
+</code></pre>
+
+<p>
+And in my routes file I have this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+-&gt;     /myresource              controllers.MyResource
+POST   /myresource/:id/custom   controllers.MyResource.custom(id: Long)
+</code></pre>
+
+<p>
+You can see I've also shown an example of adding a custom action to the controller, obviously the standard crud actions are not going to be enough, and the nice thing about this is that you can add as many arbitrary routes as you want.
+</p>
+
+<p>
+But what if we want to have a managed controller, that is, one whose instantiation is managed by a DI framework?  Well let's created another router that does this:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+class ManagedResourceRouter[T, R &gt;: ResourceController[T]]
+    (implicit idBindable: PathBindable[T], ct: ClassTag[R]) 
+    extends ResourceRouter[T] {
+
+  private def invoke(action: R =&gt; EssentialAction) = {
+    Play.maybeApplication.map { app =&gt;
+      action(app.global.getControllerInstance(ct.runtimeClass.asInstanceOf[Class[R]]))
+    } getOrElse {
+      Action(Results.InternalServerError("No application"))
+    }
+  }
+
+  def index = invoke(_.index)
+  def newScreen = invoke(_.newScreen)
+  def create = invoke(_.create)
+  def show(id: T) = invoke(_.show(id))
+  def edit(id: T) = invoke(_.edit(id))
+  def update(id: T) = invoke(_.update(id))
+  def destroy(id: T) = invoke(_.destroy(id))
+}
+</code></pre>
+
+<p>
+This uses the same <tt>Global.getControllerInstance</tt> method that managed controllers in the regular router use.  Now to use this is very simple:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+package controllers
+
+class MyResource(dbService: DbService) extends ResourceController[Long] {
+  def index = Action {...}
+  def create(id: Long) = Action {...}
+  ...
+  def custom(id: Long) = Action {...}
+}
+object MyResource extends ManagedResourceRouter[Long, MyResource]
+</code></pre>
+
+<p>
+And in the routes file:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+-&gt;     /myresource              controllers.MyResource
+POST   /myresource/:id/custom   @controllers.MyResource.custom(id: Long)
+</code></pre>
+
+<p>
+The final thing we need to consider is reverse routing and the Javascript router.  Again this is very simple, but I'm not going to go into any details here.  Instead, you can check out the final product, which has a few more features, <a href="https://gist.github.com/jroper/5533633">here</a>.
+</p>

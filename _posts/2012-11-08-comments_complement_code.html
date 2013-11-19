@@ -1,0 +1,95 @@
+---
+title: Comments complement code
+date: 2012/11/08 23:37
+tags: 
+---
+<p>
+Today I read this quote:
+</p>
+
+<blockquote>
+Good code is its own best documentation. As you’re about to add a comment, ask yourself, ‘How can I improve the code so that this comment isn’t needed?’
+</blockquote>
+
+<p>
+I just want to say, it's a load of rubbish.  Take a look at the following code:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+def toCharArray(
+     decoder: CharsetDecoder = Charset.forName("UTF-8").newDecoder()
+  ): Enumeratee[Array[Byte], Array[Char]] = new Enumeratee[Array[Byte],Array[Char]] {
+
+  def step[A](inner: Iteratee[Array[Char], A], partialChar: Option[Array[Byte]] = None)(in: Input[Array[Byte]]): 
+      Iteratee[Array[Byte], Iteratee[Array[Char], A]] = {
+    in match {
+      case EOF =&gt; partialChar.map(_ =&gt; Error[Array[Byte]]("EOF encountered mid character", EOF))
+        .getOrElse(Done[Array[Byte],Iteratee[Array[Char],A]](inner, EOF))
+
+      case Empty =&gt; Cont(step(inner, partialChar))
+
+      case El(data) =&gt; {
+        val charBuffer = CharBuffer.allocate(data.length + 1)
+        val byteBuffer = partialChar.map({ leftOver =&gt;
+          val buffer = ByteBuffer.allocate(leftOver.length + data.length)
+          buffer.mark()
+          buffer.put(leftOver).put(data)
+          buffer.reset()
+          buffer
+        }).getOrElse(ByteBuffer.wrap(data))
+
+        decoder.decode(byteBuffer, charBuffer, false)
+
+        val leftOver = if (byteBuffer.limit() &gt; byteBuffer.position()) {
+          Some(byteBuffer.array().drop(byteBuffer.position()))
+        } else None
+
+        val decoded = charBuffer.array().take(charBuffer.position())
+        val input = if (decoded.length == 0) Empty else El(decoded)
+
+        inner.pureFlatFold {
+          case Step.Cont(k) =&gt; Cont(step(k(input), leftOver))
+          case _ =&gt; Done(inner, Input.Empty)
+        }
+      }
+    }
+  }
+
+  def applyOn[A](inner: Iteratee[Array[Char], A]) = Cont(step(inner))
+}
+</code></pre>
+
+<p>
+If you know iteratees and you know Scala, it's pretty obvious what this does.  It converts a stream of byte arrays into a stream of char arrays, taking into the consideration the possibility that one character may be split across multiple byte arrays.  Structurally it is purely functional, however the actual decoding is not, it uses the high performance Java <tt>CharBuffer</tt> and <tt>ByteBuffer</tt> classes to do the decoding, which are mutable, and arguably this is necessary since this enumeratee is a place where performance matters.  I wrote it, and in my opinion it's not badly written, though if you can see anything that could be improved, please let me know.
+</p>
+
+<p>
+So, tell me, on line 14, why do I allocate a char buffer of the incoming byte array length plus one?  What is the reason for the plus one?  When I first wrote it, I didn't have the plus one there, I didn't think it was needed.  You see, when converting an array of bytes to an array of UTF-16 Java characters, at most, 8 bytes will become 8 characters, right?  8 bytes could become 4 characters, if those characters were multi byte characters, the number of chars needed might be less than the number of bytes being decoded, but it can never be more, right?  One byte can't become multiple UTF-16 chars, so why would I ever need 9 characters for 8 bytes?
+</p>
+
+<p>
+Now maybe you might criticise my code because the +1 is actually a magic number, and if I gave it a name, then that would explain everything.  Well, let's give it a name, and reasonable a name (I could give it a two hundred character long name and that might explain everything but you can hardly call two hundred character long variable names good code.  Well, maybe you can in Java, but not in Scala).  So I'll create a <tt>val PotentialMultiCharOffset = 1</tt>.  Does that help you at all?  Do you know what it's for?  Why is it 1?  Why is it added, why don't I multiply by 2?  If you do know the reason behind it, then hats off to you, you are a genius.  But for the rest of us, we don't know.  It as only after I wrote comprehensive unit tests for the code that I found the bug (I've heard other people say that unit tests are not necessary for functional code, another fallacy).
+</p>
+
+<p>
+Let me show you the comment that is above that line of code:
+</p>
+
+<pre class="prettyprint"><code class="language-scala">
+// The +1 here is very important, it is there for the case when there are
+// 3 bytes of a 4 byte character in the partialChar array, and so this data
+// should contain the final byte, but that one byte will become 2 Chars.
+val charBuffer = CharBuffer.allocate(data.length + 1)
+</code></pre>
+
+<p>
+Understand it now?  Was there any way that I could have written the code that would have explained that?  Was there any variable name that I could have given it that would have explained it better than that comment?  No, it just needed a simple comment explaining its purpose.  Without the comment, you'd be sitting there wondering why on earth I had added 1, you might have even thought "this is allocating more memory than needed, I'll just optimise this" and you would have injected a bug.  In this case, a comment is aptly suited to making the code understandable.  The comment complements the code.  It is necessary and the best way of describing it.
+</p>
+
+<p>
+And the fact is that we come across things every day where some really obscure edge case means we have to do some otherwise obscure behaviour.  Maybe in a world of higher order logic this isn't the case, but we work in a world of far less than perfect protocols with edge cases that are impossible to memorise, where optimising an equals comparison to return early when you encounter the first character that isn't equal is a security vulnerability, where bugs in other software that our software has to interface to means we have to do counter intuitive things to work around their issues, and where some things are just plain hard to get your heard around, and sometimes a little plain English (or whatever language you speak) just does that little bit to helping you or the next developer make sense of it all.
+</p>
+
+<p>
+Comments complement code.  Good code does not negate the need of comments.  Good code includes comments where comments are needed.
+</p>

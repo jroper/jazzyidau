@@ -1,0 +1,41 @@
+---
+title: My complaint against Haskell
+date: 2012/07/07 00:53
+tags: haskell
+---
+<p>
+I have nothing against Haskell.  I've been getting my teeth stuck into some Scala over the recent months, and I am loving functional programming, immutable types, and am even starting to see what's so good about monads.  So Haskell, with its reputation of being a good pure functional language, is interesting to me.  I did Haskell when I was in university.  I didn't learn it, if I had learnt it, I would have understood it.  I just did it.  We learnt really useful things like doubling every integer in a list with a simple map function.  Like curried and uncurried functions, like zipping, folding, reducing... all within the context of trivial contrived examples that did absolutely nothing to help us in the real world.  In my 15 years of programming, I have only once ever needed to double every integer in a list, that was in my Haskell lab at uni.  Very useful.
+</p>
+
+<p>
+My problem is not with Haskell.  My problem is with the people that teach and promote Haskell.  They have never presented me with an example of how Haskell can help me in the real world.  And today I'd like to highlight this, by looking at the first piece of code you'll encounter if you read the documentation on Haskell on the <a href="http://www.haskell.org">Haskell website</a>.  If you visit that website, and you want to know what Haskell is, you'll very quickly notice the link "What is Haskell".  Clicking on it, you'll be taken to <a href="http://www.haskell.org/haskellwiki/Introduction">a page</a>, and as you scroll down, you'll come across your first piece of Haskell code.  It's quicksort:
+</p>
+
+<pre>
+quicksort :: Ord a =&gt; [a] -&gt; [a]
+quicksort []     = []
+quicksort (p:xs) = (quicksort lesser) ++ [p] ++ (quicksort greater)
+    where
+        lesser  = filter (&lt; p) xs
+        greater = filter (&gt;= p) xs
+</pre>
+
+<p>
+If you've ever implemented quicksort in a procedural language before, you'll notice that that code is very simple in comparison.  It has some syntax you might not recognise, but it's not a soup of crazy characters like Perl, it looks ordered, and easy to read.  It's impressive.  But is it practical?
+</p>
+
+<p>
+What is quicksort?  The name implies that it is quick.  So what's its running time?  O(<i>n<sup>2</nup></i>).  Wait, hang on, that's not quick, there are faster algorithms out there, like heap sort, it runs in O(<i>n log(n)</i>) time.  Well, it turns out, the average running time of quicksort is <i>n log(n)</i>, but why would you use it over another algorithm that guarantees <i>n log(n)</i> running time?  The reason is, the actual implementation of quicksort is really simple from a computation perspective, it does very little per element of the array, making its actual running time (on average) about 3 times faster than heap sort or merge sort.  This makes quicksort very useful, if you want an algorithm that sorts an array as fast as possible, at the cost of in some circumstances not being very fast, then quicksort is perfect for you.  This is why quicksort is called quicksort, it is quick.  It may not mathematically have the best running time, but practically, it is quick.
+<p>
+
+<p>
+This brings me to quicksort in Haskell.  One of the reasons why quicksort, implemented in a procedural language, is so quick is that it does very close to the minimum necessary swap operations needed to sort the array.  It sorts in place, it doesn't require building supplementary data structures, like two separate arrays in merge sort or the maximum heap in heap sort.  It plays very nicely with hardware optimisations like CPU caches, maximising cache hits regardless of the size of the array and cache.  However, the implementation above in Haskell does use additional structures.  It partitions the list by creating two new lists on each recursion of the algorithm, requiring many more memory writes than the in place implementation.  It uses linked lists, which play very poorly with CPU caches.  It still runs in <i>n log(n)</i> on average, but it's now doing a lot more operations with very little help from hardware.  This added overhead means that quicksort is no longer 3 times faster than merge or heap sort.  Which means it now, on average, has similar run times to the O(<i>n log(n)</i>) algorithms, and still with the possibility of running in <i>n<sup>2</sup></i> for some inputs.  It no longer is <i>quick</i>, and hence is not practical to use in the real world, you may as well use merge sort or heap sort.
+</p>
+
+<p>
+To make matters worse, this implementation will <i>always</i> perform poorly on lists that are already k sorted, which is not an uncommon real world input to sort algorithms.  A procedural implementation may also perform poorly on k sorted lists, but it's a simple change to make it perform well, just choose a random pivot, or a pivot from somewhere in the middle of the list.  In Haskell, you can't do that without adding yet another overhead, because your lists are linked lists, and so accessing a random pivot takes <i>n</i> time.
+</p>
+
+<p>
+Now, none of this means that Haskell is a bad language.  Merge sort in Haskell is also very simple, and is also a very practical sorting algorithm in many cases, and so could have been used as an example instead.  But why did the authors of this documentation choose a piece of code that is completely useless in the real world as the first taste of Haskell that many people will ever see?  This is my complaint about Haskell, it's never been promoted to me in a way that bears any practical usefulness.  I'm sure it's a great language.  Pity about the people that promote it.
+</p>

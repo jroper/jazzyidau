@@ -1,0 +1,24 @@
+---
+title: How to write a REST API in Play Framework
+date: 2013/06/14 04:18
+tags: play java scala rest
+---
+<p>
+A very common question that we get on the Play mailing list is how do you write a REST API using Play Framework?  There's no explicit documentation on it, you won't find a page in the Play documentation titled "Writing REST APIs".  The question is often met with confusion, to those that try to answer it, the question for them is "how can you not write a REST API with Play?  Play is all about REST."
+</p>
+
+<p>
+So let me explain why we don't have a page on writing REST APIs.  Play is fundamentally a framework for writing REST APIs, just like a fridge is a tool that is fundamentally for keeping food cold.  When you buy a fridge, and you get the manual for a fridge, do you find a page titled "How to keep food cold using the fridge"?  Probably not.  You'll find instructions for installing the frige, turning it on, setting the temperature, adjusting the shelves, but you won't find instructions that explicitly say how to keep the food cold.  Why not?  Because it's assumed that you understand, when you buy the fridge, that the way to keep food cool in it is by putting food in and closing the door.  The whole manual is about how to keep food cold, since that's the fridges fundamental function.
+</p>
+
+<p>
+It's the same with Play.  We assume first of all that you know what a REST API is.  There's plenty of documentation out there on the web on what a REST API is, there's no reason for us to repeat this in our documentation, a good place to start might be <a href="http://stackoverflow.com/questions/671118/what-exactly-is-restful-programming">this StackOverflow question</a>.  As the first answer to that question says, "Really, what it's about is using the true potential of HTTP", Play also provides everything you need to use the true potential of HTTP.
+</p>
+
+<p>
+So we have documentation on writing routes in <a href="http://www.playframework.com/documentation/2.1.1/ScalaRouting">Scala</a> and <a href="http://www.playframework.com/documentation/2.1.1/JavaRouting">Java</a>, we have documentation on sending results in <a href="http://www.playframework.com/documentation/2.1.1/ScalaResults">Scala</a> and <a href="http://www.playframework.com/documentation/2.1.1/JavaResults">Java</a>, we have documentation on handling JSON in <a href="http://www.playframework.com/documentation/2.1.1/ScalaJson">Scala</a> and <a href="http://www.playframework.com/documentation/2.1.1/JavaJson">Java</a>, and so on and so on.  All this documentation is giving you the tools you need to implement what Play fundamentally about, that is, HTTP, which when realised to its true potential, will be REST.  There's nothing special about a REST API in Play, writing a REST API in Play means writing a web application in the way that Play is designed to be used.  We could probably rename the Play documentation <a href="http://www.playframework.com/documentation/2.1.1/Home">home page</a> to be "Writing a REST API in Play", that would accurately describe what most of the Play documentation is about.
+</p>
+
+<p>
+Let me repeat again, Play is all about realising the full potential of HTTP, which means Play is all about REST.  You want to read about how to write a REST API in Play?  Read the Play documentation, it's all about writing a REST API in Play.
+</p>

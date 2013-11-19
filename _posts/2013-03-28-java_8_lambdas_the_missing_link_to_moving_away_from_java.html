@@ -1,0 +1,65 @@
+---
+title: Java 8 Lambdas - The missing link to moving away from Java
+date: 2013/03/28 10:11
+tags: scala
+---
+<blockquote>
+I learnt functional programming, but then I decided I liked imperative programming better so I switched back.
+<div style="text-align: right">&mdash; Nobody, ever</div>
+</blockquote>
+
+<p>
+Moving from imperative programming to functional programming is a very common thing to do today.  Blog posts on the internet abound with testimonies about it.  Everything I've read and every person I've talked to, including myself, has the same story.  Once they started functional programming, there was no looking back.  They loved it, and in the early days, even the small amount they learnt gave them a thirst to learn more.
+</p>
+
+<p>
+To me it seems clear, going from imperative programming to functional programming is a one way street under heavy traffic.  It's a diode with a million volts sitting across it.  It's a check valve on a mains water pipe.  Not only can you not go back, but it comes with an irresistible desire to explore and learn more that pushes you further into functional programming.
+</p>
+
+<h2>Java 8 Lambdas</h2>
+
+<p>
+With Java 8 lambdas on the way, this poses an interesting turning point for one of the largest groups of developers on the planet.  Lambdas in themselves don't necessarily equate to functional programming.  But they do enable it.  And as a developer here starts dabbling in functional programming, a library maintainer there, we'll start to see some new things in Java source code.  Methods that previously might have returned <tt>null</tt> will start returning <a href="http://docs.guava-libraries.googlecode.com/git/javadoc/com/google/common/base/Optional.html"><tt>Optional</tt></a>.  Libraries that do IO, for example HTTP client libraries, will start returning <a href="http://gee.cs.oswego.edu/dl/jsr166/dist/docs/java/util/concurrent/CompletableFuture.html"><tt>CompletableFuture</tt></a>.  More and more functional concepts will start creeping into Java interfaces, there will be methods called fold, map, reduce, collect.  And so will start the one way street of the Java masses moving from imperative programming to functional programming.
+</p>
+
+<p>
+But will Java satisfy their thirst?  Looking at the Lambda spec, I suspect not.  I see an essence of genius in the Lambda spec, it makes many, many existing libraries instantly usable, with no changes, with Lambdas.  The reason for this is that a Lambda is just syntactic sugar for implementing a single-abstract-method (SAM) interface.  In Java you'll find SAM's everywhere, from <tt>Runnable</tt> and <tt>Callable</tt> in the concurrency package, to <tt>ActionListener</tt> in Swing, to <tt>Function</tt> and <tt>Supplier</tt> in Guava, and the list goes on.  All of these libraries are Lambda ready today.
+</p>
+
+<p>
+However, this also presents a problem.  Functional programming gets interesting when you start composing things.  The ability to pass functions around and compose them together gives a lot of power - but the Java 8 Lambdas are not composable.  Java 8 does provide a <a href="http://download.java.net/jdk8/docs/api/java/util/function/Function.html"><tt>Future</tt></a> SAM, but so does Guava, and many other libraries.  To compose these together, you'd need all permutations of composition methods.  Two SAM's of the same type aren't even very simple to compose, at least, not in a traditional Java way, since you can't add any methods to the SAM, such as a map or transform method, to do the composing.
+</p>
+
+<p>
+So, without the ability to do one of the most basic functional concepts, composing functions, can Java ever become a functional language?  Maybe there are some creative ways to solve this that I haven't thought of.  And maybe it doesn't need to, I don't think the designers of Java 8 Lambdas had any intention of making Java a functional language, so you can't call this a fault of the Lambda spec.  But the problem is the developers, having got a taste for functional programming, as I pointed out earlier, are going to want more, and going to want more fast.  Even if Java could become a functional language, I don't think it will keep up with the movement of Java developers to functional programming.
+</p>
+
+<p>
+So I'm going to make a prediction.  Java 8 Lambdas will be eagerly adopted.  So eagerly that Java itself will be left behind, and the majority of Java developers will move on to a language that meets their needs as eager budding new functional programmers.
+</p>
+
+<h2>Which language?</h2>
+
+<p>
+Before I speculate on which language Java developers will move to, let me first just qualify that I am both biased and ignorant.  I work for Typesafe, and so am obviously biased towards Scala.  And apart from playing with Haskell and ML at university, I have never used any other functional language in anger.  So take my words with a grain of salt, and if you disagree, write your own blog post about it.
+</p>
+
+<h2>Scala as a transitionary language</h2>
+
+<p>
+So firstly, I think Scala makes a great transitionary language for imperative programmers to switch to functional programming.  Having got a taste for functional programming with Java 8 Lambdas, a Java developer will find themselves very comfortable in Scala.  They can still do everything in the same way they used to, they have vars and mutable collections, they have all the standard Java libraries at their finger tips.  And of course, they can start deepening their knowledge in functional programming.  So Scala provides a smooth transition from imperative programming to functional programming, you can adopt functional programming as quickly or as slowly as you like.
+</p>
+
+<h2>Scala as the destination language</h2>
+
+<p>
+Having transitioned to functional programming, will developers stay at Scala, or will they move on, like they moved on from Java, in search of a more pure language?  My opinion here is no.  Broadly speaking, I see two camps in the functional programming community.  The first camp sees functional programming as a set of laws that must be followed.  For this camp, Scala has a lot of things that are not necessary and/or dangerous, and they would probably not see Scala as the end destination.
+</p>
+
+<p>
+The second camp sees functional programming as a powerful tool that should be widely exploited, but not a set of laws that must be followed.  This is where I stand, and Scala fills the needs of this camp very well.  Functional programming has first class support in Scala, but you can always fall back to imperative when it makes sense.  I suspect that the majority of the Java community would be inclined to join this camp, otherwise, they would already be shunning Java and writing Haskell.
+</p>
+
+<p>
+So I think Java 8 Lambdas are going to be very good for Scala, in that they give Java developers a taste for what Scala will do for them, and thus funnel the masses into Scala development.
+</p>

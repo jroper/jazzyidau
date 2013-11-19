@@ -1,0 +1,43 @@
+---
+title: Hashbangs on the new Google Groups
+date: 2012/05/12 17:02
+tags: hashbang google
+---
+<p>
+Hash-bang URLs have been a contentious issue at my work over the past week, so much so that we completely got rid of them in the project that I'm working on.  Coming out of the experience, I'm not convinced that hash-bangs are always a bad idea, however, there are some types of sites where they are very bad.  Google groups I believe falls firmly into this category.  And it's too late to do anything about it.
+</p>
+
+<img src="images/blogs/google-groups.jpg" style="float:right; margin: 10px" alt="Google Groups Logo"/>
+<p>
+The major issue with hash-bangs is not that it's a hack - many people would have called dynamically generating documents on each request a hack when websites first started doing that almost 20 years ago.  It's not that it's ugly.  It's not that some users don't have Javascript enabled (HTML5 mandates various Javascript APIs, if it doesn't do Javascript, it doesn't do HTML, Javascript is a core building block of the web - get over it).  The big issue is maintainability of URLs.
+</p>
+
+<p>
+For some sites, this is irrelevant.  Take a site that is your own personal dashboard to managing your own private things - a webmail site for example.  Nothing is going to link to it, so there is no need to maintain URLs.  For other sites, it's an issue, but it's not so important.  I know the folks at Twitter are considering it a big issue at the moment, but really, if a link breaks to someones 140 character word of wisdom... does it really matter?
+</p>
+
+<p>
+But then there is a category of sites for which it is really important.  These are the sites that maintain permanent records for future use.  Mailing lists are one such example.  I have an open source project, called the mongo jackson mapper.  It has a small user base, and I provide support to people when they asked questions.  About a month ago, I noticed that I was getting a number of emails from people asking for help.  I was more than happy to answer these, however, I was concerned that if one person has a question, then other people are likely to have the same question, and I would be doing a lot of repeat work in answering people questions.  So, I setup a Google group for questions.
+</p>
+
+<p>
+Now, when someone asks the same question twice, I can simply link to the old answer, no need to rewrite the answer.  Furthermore, people on other sites, such as stack overflow, can link to my answers.  The URL to that answer will stand as a link in the chain to a record in time that will help many people help themselves in future.  However, the usefulness is dependent on that link still working in future.  Let's have a look at an example link:
+<p>
+
+<p><a href="https://groups.google.com/forum/?fromgroups#!topic/mongo-jackson-mapper/AeFF5Cqqolw">https://groups.google.com/forum/?fromgroups#!topic/mongo-jackson-mapper/AeFF5Cqqolw</a></p>
+
+<p>
+As you can see, the ID of the message only appears after the hash-bang.  This means, it doesn't get sent to the server when you request it, the only way Google can know what message is being request is to serve up some Javascript that parses it out of the URL.  And that's exactly what they do.  But what happens, in future, when they decide to rewrite Google groups again?  And again?  And again...  If the resource, https://groups.google.com/forum/?fromgroups, doesn't continue to serve up that Javascript, then all links to all posts that people have copied from their browser address bar and pasted elsewhere will break.  The permanent record of networked help pages that people use to solve their every day problems will be broken.
+</p>
+
+<p>
+In contrast, if they didn't use hash-bang URLs, then they could make whatever changes to their URL structure that they liked, and all they have to do to maintain the URLs is implement a simple redirect on the server side.  No need to serve Javascript up at a particular resource.
+</p>
+
+<p>
+Google groups does have a permalink feature, but really, who uses that?  It feels unnatural for me even though I know and understand the difference between permalinks and what is in my address bar.  When I want to copy a URL, without thinking, I copy it straight from the address bar, because this is what I always do for every other site.
+</p>
+
+<p>
+So, Google groups, really?  Hash-bangs?  Are you not thinking of the future?  Are you seriously committing to maintaining Javascript at arbitrary URLs for the lifetime of the internet?  Unfortunately, the horse has bolted, these hash-bang links to Google groups are already starting to find themselves around the web, so you have no choice.  And I'm guessing that someone in future will forget this, and and so you'll just break all those links.
+</p>

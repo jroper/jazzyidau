@@ -1,0 +1,39 @@
+---
+title: Configuring Tomcat to use Apache SSL certificates
+date: 2010/01/21 10:55
+tags: tomcat ssl apache java
+---
+<p>
+In a typical SSL configuration for a Tomcat web server, Apache sits in front of Tomcat as a reverse proxy, and does the SSL.  This was the configuration of some systems I work with.  There are a number of reasons why this configuration is used, the primary one being that Apache's SSL implementation is much faster than Tomcat's.  So it's not often that you would go from using this configuration to switching to a Tomcat only configuration, but that's exactly what I just did.
+</p>
+
+<p>
+The reason for doing this is that we wanted to use Tomcat's NIO connector, in order to use Tomcat's <a href="http://tomcat.apache.org/tomcat-6.0-doc/aio.html">comet capabilities</a>.  Setting up SSL with Tomcat is something that I had never done before, I had heard though that it was not easy.  After trying to do it without really understanding what I was doing, I found that it really wasn't easy.  The problem was that everything I looked at on the web talked about using the Java <tt>keytool</tt> to generate a key, so you could send a certificate signing request to your trusted authority to sign.  The thing is, I already had a key, and a certificate, and the Java <tt>keytool</tt> utility that does all this key manipulation has no way of importing an existing key.
+</p>
+
+<p>
+Eventually I found <a href="http://www.agentbob.info/agentbob/79-AB.html">this utility</a>, and was able to get things working.  But, as often happens when solving these problems, I then read back over the <a href="http://tomcat.apache.org/tomcat-6.0-doc/ssl-howto.html">Tomcat SSL HowTo</a>, and now with more of an understanding of what I was doing I found a much simpler and easier way of getting Tomcat to use my existing certificate.
+</p>
+
+<p>
+The trick is, rather than use a JKS repository, which is the native Java SSL certificate store, and what most of the documentation on the web talks about, is use a <tt>PKCS12</tt> repository, which is an internet standard, and can be manipulated using standard tools such as <tt>openssl</tt>.  This tool requires three files, which are easy to find from your Apache SSL configuration, one is the private key file, another is the certificate, and finally the certificate signer chain.  The command to run is:</p>
+
+<pre style="border:1px dashed black; padding:4px 7px;">
+openssl pkcs12 -export -in mycert.crt -inkey mykey.key \
+                        -out mycert.p12 -name tomcat -CAfile myCA.crt \
+                        -caname root -chain
+</pre>
+
+<p>
+The <tt>name</tt> and <tt>caname</tt> arguments can be anything, they're just convenient aliases to allow later manipulation of the file.  The command will prompt you for a password, this password gets set as the <tt>keystorePass</tt> in the Tomcat connector configuration.  The <tt>keystoreType</tt> must be set to <tt>PKCS12</tt>.  Here is my Tomcat configuration:
+</p>
+
+<pre class="prettyprint"><code class="language-xml">
+    &lt;Connector port="8443" maxHttpHeaderSize="8192"
+               maxThreads="150" enableLookups="false" acceptCount="100"
+               connectionTimeout="20000" disableUploadTimeout="true"
+               protocol="org.apache.coyote.http11.Http11NioProtocol"
+               SSLEnabled="true" scheme="https" secure="true" clientAuth="false" sslProtocol="TLS"
+               keystoreFile="/path/to/mycert.p12"
+               keystoreType="PKCS12" keystorePass="tomcat"/&gt;
+</code></pre>

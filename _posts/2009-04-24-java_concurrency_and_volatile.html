@@ -1,0 +1,92 @@
+---
+title: Java Concurrency and Volatile
+date: 2009/04/24 09:41
+tags: java concurrency volatile
+---
+<p>
+The volatile keyword is a keyword that very few Java developers know the meaning of, let alone when they should use it.  The reason for this, I believe, is that the reason why it's needed is such a complex topic that unless you've studied in detail the way CPUs use registers, cache, and the way the JVM uses stack frames, it's impossible to understand why it's needed.  The other reason I think, is that it is difficult to demonstrate the consequences of not using it.  That is why I came up with this little puzzle, to highlight how important the volatile keyword is.
+</p>
+
+<p>
+For this demonstration, you will need a multi processor Linux 2.6 or OpenSolaris system, with Java 5 or above.  It will not work on Mac or Windows.  If you know why it doesn't work on Mac or Windows, please leave a comment explaining, I'd really like to know.  What this does highlight though is just how complex Java concurrency issues are.
+</p>
+
+<p>
+So on to the puzzle.  Without executing it, try and work out what will happen when you run the following code:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+public class ConcurrencyFun implements Runnable
+{
+    private String str;
+    void setStr(String str)
+    {
+        this.str = str;
+    }
+    public void run()
+    {
+        while (str == null);
+        System.out.println(str);
+    }
+    public static void main(String[] args) throws Exception
+    {
+        ConcurrencyFun fun = new ConcurrencyFun();
+        new Thread(fun).start();
+        Thread.sleep(1000);
+        fun.setStr("Hello world!!");
+    }
+}
+</code></pre>
+
+<p>
+Most people would guess that the above code would wait for about one second, print the text "Hello world!!", and then exit.  The spawned thread busy waits for <tt>str</tt> to not be null, and then prints it.  The main thread, after starting the spawned thread, waits for one second, and then sets <tt>str</tt> to be "Hello world!!".  Simple, right?
+</p>
+
+<p>
+Now try running it (remember, only on a multi processor Linux 2.6 or Solaris system).  What actually happens?  On my machine, the program never exits.  Why is this?
+</p>
+
+<p>
+The reason is that the JVM is free to make its own copy of the <tt>str</tt> pointer available to each thread that uses it.  This could come in many forms.  It could be that the pointer is loaded into a register and is continually read from that register.  This is what is most likely happening in our case.  It could be that the pointer is loaded into the CPU cache, and never expired, even after update.  Or, it is also possible that the JVM will make a copy of the pointer in the threads stack frame, to allow for more efficient memory access.  Whether you understand anything I've just said or not, the point is that changes to the <tt>str</tt> field may not necessarily be seen by all threads accessing it, in our case, it will never be seen by the spawned thread.
+</p>
+
+<p>
+This is where the volatile keyword comes in.  The volatile keyword tells the JVM that any writes to that field must be viewable by all threads.  This means that the compiled machine code may not read the variable into a register and use that multiple times, it must read it from memory every time.  It also must not read it from the CPU cache, it must make sure that every read comes straight from memory.  And finally, it stops the JVM from creating a local copy of the field in the threads stack frame.
+</p>
+
+<p>
+So, adding the volatile keyword, like so:
+</p>
+
+<pre class="prettyprint"><code class="language-java">
+public class ConcurrencyFun implements Runnable
+{
+    private volatile String str;
+    void setStr(String str)
+    {
+        this.str = str;
+    }
+    public void run()
+    {
+        while (str == null);
+        System.out.println(str);
+    }
+    public static void main(String[] args) throws Exception
+    {
+        ConcurrencyFun fun = new ConcurrencyFun();
+        new Thread(fun).start();
+        Thread.sleep(1000);
+        fun.setStr("Hello world!!");
+    }
+}
+</code></pre>
+
+<p>
+results in the expected behaviour happening, the program waits one second, prints out "Hello world!!" and then exists.
+</p>
+
+<h3>The complexity of concurrency</h3>
+
+<p>
+There are other ways to make the above code work.  For example, if in the while loop, you add some code that prints something out, you will find that it works.  My guess at the reason for this is that the register storing <tt>str</tt> ends up getting used for something else, and so on each iteration, <tt>str</tt> gets read from memory.  Note that this is not a real fix, it is still possible for problems to occur, and indeed on some architectures the program still will not exit.  Another thing that will work is to invoke Java with the <tt>-Xint</tt> argument.  This disables machine code compilation, and hence makes concurrency issues arising from registers and CPU caches much less likely.  But again, it's not a solution.  Using the volatile keyword is the only solution that guarantees that it will work, every time, on every platform.
+</p>
