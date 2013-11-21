@@ -1,14 +1,13 @@
 ---
 title: SBT per version global plugins
-date: 2013/05/29 15:50
+date: 2013-05-29T15:50:33.465+10:00
 tags: scala sbt
 ---
 <p>
 I'm an IntelliJ user, so I have the SBT idea plugin permanently in my global SBT plugins.  This is fine, until I start working across versions of SBT, and particularly with milestone builds of unreleased SBT versions, because in that case, the version of the idea plugin that I usually use with other versions of SBT may not be available.  Hence I need to have per SBT version global plugins.  I think this might be easier to do in future, but for now, here's a way to do it:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-libraryDependencies &lt;++= (sbtBinaryVersion in update, scalaBinaryVersion in update) { (sbtV, scalaV) =&gt;
+<pre class="prettyprint"><code class="language-scala">libraryDependencies &lt;++= (sbtBinaryVersion in update, scalaBinaryVersion in update) { (sbtV, scalaV) =&gt;
   sbtV match {
     case sbt013 if sbt013.startsWith("0.13.") =&gt; Seq(
       Defaults.sbtPluginExtra("com.github.mpeltonen" % "sbt-idea" % "1.5.0-SNAPSHOT", sbtV, scalaV)

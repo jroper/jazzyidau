@@ -1,6 +1,6 @@
 ---
 title: Advanced routing in Play Framework
-date: 2013/05/08 01:51
+date: 2013-05-08T01:51:42.454+10:00
 tags: scala play
 ---
 <p>
@@ -13,8 +13,7 @@ We frequently get questions about how to meet all sorts of different routing nee
 If for some reason you don't like Plays router, or if you want to use a modified router, then Play allows you to do this easily.  <tt>Global.onRouteRequest</tt> is the method that is invoked to do routing.  By default, this delegates to the Play router, but you can override it to do whatever you want.  For example:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-override def onRouteRequest(req: RequestHeader): Option[Handler] = {
+<pre class="prettyprint"><code class="language-scala">override def onRouteRequest(req: RequestHeader): Option[Handler] = {
   (req.method, req.path) match {
     case ("GET", "/") =&gt; Some(controllers.Application.index)
     case ("POST", "/submit") =&gt; Some(controllers.Application.submit)
@@ -31,8 +30,7 @@ As you can see, I've practically implemented my own little routing DSL here.  I 
 An interesting thing that could also be done is to delegate to different routers based on something in the request.  A play router compiles to an instance of <tt>Router.Routes</tt>, and it will be an object called <tt>Routes</tt> itself.  By default, any file with the <tt>.routes</tt> extension in the <tt>conf</tt> directory will by compiled, and will go in the package with the same name as the filename, minus the <tt>.routes</tt>.  So if I had two routers, <tt>foo.routes</tt> and <tt>bar.routes</tt>, I could implemented a crude form of virtual hosting like so:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-override def onRouteRequest(req: RequestHeader): Option[Handler] = {
+<pre class="prettyprint"><code class="language-scala">override def onRouteRequest(req: RequestHeader): Option[Handler] = {
   if (req.host == "foo.example.com") {
     foo.Routes.routes.lift(req)
   } else if (req.host == "bar.example.com") {
@@ -59,8 +57,7 @@ So here are some use cases that overriding <tt>onRouteRequest</tt> may be useful
 We saw in the previous example how to use Plays <tt>Router.Routes</tt> interface, another option is to implement it.  Now, there's no real reason to implement it if you're just going to delegate to it directly from <tt>onRouteRequest</tt>.  However, by implementing this interface, you can include it in another routes file, using the sub routes include syntax, which in case you haven't come across this before, typically looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
--&gt;    /foo         foo.Routes
+<pre class="prettyprint"><code class="language-scala">-&gt;    /foo         foo.Routes
 </code></pre>
 
 <p>
@@ -71,8 +68,7 @@ Now something that people often criticise Play for is that it doesn't support ra
 So let's start off with an interface that our controllers can implement:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait ResourceController[T] extends Controller {
+<pre class="prettyprint"><code class="language-scala">trait ResourceController[T] extends Controller {
   def index: EssentialAction
   def newScreen: EssentialAction
   def create: EssentialAction
@@ -91,8 +87,7 @@ I could provide default implementations that return not implemented, but then im
 Now I'm going to write a router.  The router interface looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait Routes {
+<pre class="prettyprint"><code class="language-scala">trait Routes {
   def routes: PartialFunction[RequestHeader, Handler]
   def documentation: Seq[(String, String, String)]
   def setPrefix(prefix: String)
@@ -108,8 +103,7 @@ The <tt>routes</tt> method is pretty self explanatory, it is the function that l
 So we'll write an abstract class that implements the routes interface and the <tt>ResourceController</tt> interface:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-abstract class ResourceRouter[T](implicit idBindable: PathBindable[T]) 
+<pre class="prettyprint"><code class="language-scala">abstract class ResourceRouter[T](implicit idBindable: PathBindable[T]) 
     extends Router.Routes with ResourceController[T] {
   private var path: String = ""
   def setPrefix(prefix: String) {
@@ -129,8 +123,7 @@ I've given it a <tt>PathBindable</tt>, this is so that we have a way to convert 
 Now for the implementation of <tt>routes</tt>.  First I'm going to create some regular expressions for matching the different paths:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-  private val MaybeSlash = "/?".r
+<pre class="prettyprint"><code class="language-scala">  private val MaybeSlash = "/?".r
   private val NewScreen = "/new/?".r
   private val Id = "/([^/]+)/?".r
   private val Edit = "/([^/]+)/edit/?".r
@@ -140,8 +133,7 @@ Now for the implementation of <tt>routes</tt>.  First I'm going to create some r
 I'm also going to create a helper function for the routes that require the id to be bound:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def withId(id: String, action: T =&gt; EssentialAction) = 
+<pre class="prettyprint"><code class="language-scala">def withId(id: String, action: T =&gt; EssentialAction) = 
   idBindable.bind("id", id).fold(badRequest, action)
 </code></pre>
 
@@ -149,8 +141,7 @@ def withId(id: String, action: T =&gt; EssentialAction) =
 <tt>badRequest</tt> is actually a method on <tt>Router.Routes</tt> that takes the error message and turns it into an action that returns that as a result.  Now I'm ready to implement the partial function:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def routes = new AbstractPartialFunction[RequestHeader, Handler] {
+<pre class="prettyprint"><code class="language-scala">def routes = new AbstractPartialFunction[RequestHeader, Handler] {
   override def applyOrElse[A &lt;: RequestHeader, B &gt;: Handler](rh: A, default: A =&gt; B) = {
     if (rh.path.startsWith(path)) {
       (rh.method, rh.path.drop(path.length)) match {
@@ -180,8 +171,7 @@ I've implemented <tt>AbstractPartialFunction</tt>, and the main method to implem
 And now we're done.  So what does using this look like?  My controller looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-package controllers
+<pre class="prettyprint"><code class="language-scala">package controllers
 
 object MyResource extends ResourceRouter[Long] {
   def index = Action {...}
@@ -195,8 +185,7 @@ object MyResource extends ResourceRouter[Long] {
 And in my routes file I have this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
--&gt;     /myresource              controllers.MyResource
+<pre class="prettyprint"><code class="language-scala">-&gt;     /myresource              controllers.MyResource
 POST   /myresource/:id/custom   controllers.MyResource.custom(id: Long)
 </code></pre>
 
@@ -208,8 +197,7 @@ You can see I've also shown an example of adding a custom action to the controll
 But what if we want to have a managed controller, that is, one whose instantiation is managed by a DI framework?  Well let's created another router that does this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class ManagedResourceRouter[T, R &gt;: ResourceController[T]]
+<pre class="prettyprint"><code class="language-scala">class ManagedResourceRouter[T, R &gt;: ResourceController[T]]
     (implicit idBindable: PathBindable[T], ct: ClassTag[R]) 
     extends ResourceRouter[T] {
 
@@ -235,8 +223,7 @@ class ManagedResourceRouter[T, R &gt;: ResourceController[T]]
 This uses the same <tt>Global.getControllerInstance</tt> method that managed controllers in the regular router use.  Now to use this is very simple:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-package controllers
+<pre class="prettyprint"><code class="language-scala">package controllers
 
 class MyResource(dbService: DbService) extends ResourceController[Long] {
   def index = Action {...}
@@ -251,8 +238,7 @@ object MyResource extends ManagedResourceRouter[Long, MyResource]
 And in the routes file:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
--&gt;     /myresource              controllers.MyResource
+<pre class="prettyprint"><code class="language-scala">-&gt;     /myresource              controllers.MyResource
 POST   /myresource/:id/custom   @controllers.MyResource.custom(id: Long)
 </code></pre>
 

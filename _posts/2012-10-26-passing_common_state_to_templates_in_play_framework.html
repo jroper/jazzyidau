@@ -1,6 +1,6 @@
 ---
 title: Passing common state to templates in Play Framework
-date: 2012/10/26 13:52
+date: 2012-10-26T13:52:00.000+11:00
 tags: play scala templates
 ---
 <p>
@@ -11,8 +11,7 @@ This question comes up very frequently on the Play mailing list, so I thought I'
 First of all, since the state required for rendering a header can logically be grouped into one object, a header object, let's do that.  This will mean we can easily add new types of data to the header without changing any of our existing code.  So I'm going to define a header that contains a list of menu items, and the current user:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-case class Header(menu: Seq[MenuItem], user: Option[String])
+<pre class="prettyprint"><code class="language-scala">case class Header(menu: Seq[MenuItem], user: Option[String])
 case class MenuItem(url: String, name: String)
 </code></pre>
 
@@ -20,8 +19,7 @@ case class MenuItem(url: String, name: String)
 Now the template that uses this is my main template, so I'm going to add my <tt>Header</tt> class to it as an implicit parameter.  Implicit parameters are parameters that don't need to be explicitly passed when you invoke a method, instead, if an implicit value exists in the scope of the invocation, that will be used:
 </p>
 
-<pre class="prettyprint"><code class="language-html">
-@(title: String)(content: Html)(implicit header: Header)
+<pre class="prettyprint"><code class="language-html">@(title: String)(content: Html)(implicit header: Header)
 
 &lt;html&gt;
     &lt;head&gt;
@@ -47,8 +45,7 @@ Now the template that uses this is my main template, so I'm going to add my <tt>
 Now to pass this implicit parameter, all I need to do is declare that each of my templates that use the main template also accept an implicit header parameter.  So for example, in my index template:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-@(message: String)(implicit header: Header)
+<pre class="prettyprint"><code class="language-scala">@(message: String)(implicit header: Header)
 
 @main("Welcome to Play 2.0") {
     @play20.welcome(message)
@@ -59,8 +56,7 @@ Now to pass this implicit parameter, all I need to do is declare that each of my
 Now comes the magic, supplying this parameter.  I will write an implicit method that generates it.  When a parameterless method (implicit parameters don't count as parameters in this case) is declared as implicit, this allows it to be used to supply a value for an implicit parameter.  Here's the my method:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait ProvidesHeader {
+<pre class="prettyprint"><code class="language-scala">trait ProvidesHeader {
 
   implicit def header[A](implicit request: Request[A]) : Header = {
     val menu = Seq(MenuItem("/home", "Home"),
@@ -80,8 +76,7 @@ For now I've just hard coded the menu items, but you get the point.  Since this 
 So what now do I need to do to my actions?  Almost nothing, I just need to make sure that my implicit <tt>header</tt> method is in scope, and that they declare the request they accept as an implicit parameter, so for example:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-object Application extends Controller with ProvidesHeader {
+<pre class="prettyprint"><code class="language-scala">object Application extends Controller with ProvidesHeader {
 
   def index = Action { implicit request =>
     Ok(views.html.index("Your new application is ready."))

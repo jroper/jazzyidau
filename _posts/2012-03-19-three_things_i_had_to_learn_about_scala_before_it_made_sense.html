@@ -1,6 +1,6 @@
 ---
 title: Three things I had to learn about Scala before it made sense
-date: 2012/03/19 10:09
+date: 2012-03-19T10:09:08.926+11:00
 tags: scala
 ---
 <p>
@@ -17,8 +17,7 @@ Some people have no problems learning this way, and I envy them.  For me, I need
 The problem that I want to solve is dependency management.  If you've ever used maven, you'll know how verbose this can be.  For those that haven't encountered maven, here's what specifying a single dependency looks like:
 </p>
 
-<pre class="prettyprint"><code class="language-xml">
-&lt;dependency&gt;
+<pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
     &lt;groupId&gt;net.vz.mongodb.jackson&lt;/groupId&gt;
     &lt;artifactId&gt;mongo-jackson-mapper&lt;/artifactId&gt;
     &lt;version&gt;1.4.1&lt;/version&gt;
@@ -29,8 +28,7 @@ The problem that I want to solve is dependency management.  If you've ever used 
 In English, this means a dependency on the artifact <code>mongo-jackson-mapper</code> version 1.4.1 from the organisation <code>net.vz.mongodb.jackson</code>.  The English explanation is shorter than the code!  Maybe the Maven authors could have made things nicer, by placing it on one line, and that would be clearer too, for example, something like this:
 </p>
 
-<pre class="prettyprint"><code class="language-xml">
-&lt;dependency&gt;net.vz.mongodb.jackson:mongo-jackson-mapper:1.4.1&lt;/dependency&gt;
+<pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;net.vz.mongodb.jackson:mongo-jackson-mapper:1.4.1&lt;/dependency&gt;
 </code></pre>
 
 <p>
@@ -51,8 +49,7 @@ And just to ground this problem even more solidly in reality, this example is no
 First of all I will give a solution that uses language constructs that you should already be familiar with, using classes, fields, methods etc.  If the following syntax makes no sense to you, you should probably do some reading on basic Scala syntax.
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def groupId(groupId: String) = new GroupId(groupId)
+<pre class="prettyprint"><code class="language-scala">def groupId(groupId: String) = new GroupId(groupId)
 
 class GroupId(val groupId: String) {
   def artifact(artifactId: String) = new Artifact(groupId, artifactId)
@@ -70,8 +67,7 @@ class VersionedArtifact(val groupId: String, val artifactId: String, val version
 Here we have three classes, a <code>GroupId</code>, which has a method for creating an <code>Artifact</code> from that group id, which in turn has a method for creating a <code>VersionedArtifact</code>, which captures our dependency.  There's also a factory method for creating the <code>GroupId</code>.  To use it, we can do this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-groupId("net.vz.mongodb.jackson")
+<pre class="prettyprint"><code class="language-scala">groupId("net.vz.mongodb.jackson")
     .artifact("mongo-jackson-mapper")
     .version("1.4.1")
 </code></pre>
@@ -86,8 +82,7 @@ Already it's looking better than the XML version, but this could be done in Java
 To Java developers such as myself, this is a bit weird, though in other languages this is quite common.  There's some strict rules in Scala over exactly what a method name can be, but one of them is that it can be made of just operator characters (ie, +, =, *, /, %, -).  So, the first change that we're going to make to our above code is to get rid of the method names.  It makes things more concise, but other than that it may seem like a weird first step.  Bear with me.
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def groupId(groupId: String) = new GroupId(groupId)
+<pre class="prettyprint"><code class="language-scala">def groupId(groupId: String) = new GroupId(groupId)
 
 class GroupId(val groupId: String) {
   def %(artifactId: String) = new Artifact(groupId, artifactId)
@@ -105,8 +100,7 @@ class VersionedArtifact(val groupId: String, val artifactId: String, val version
 And so now our code looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-groupId("net.vz.mongodb.jackson").%("mongo-jackson-mapper").%("1.4.1")
+<pre class="prettyprint"><code class="language-scala">groupId("net.vz.mongodb.jackson").%("mongo-jackson-mapper").%("1.4.1")
 </code></pre>
 
 <h2>Lesson Two: Scala lets you call methods without dots or braces</h2>
@@ -115,8 +109,7 @@ groupId("net.vz.mongodb.jackson").%("mongo-jackson-mapper").%("1.4.1")
 There are some strict rules governing this, including what happens when obvious ambiguities arise, and you can read about that in your own research.  Simply put, if a method has only one parameter, you can call it without using the dot or the braces, rather replace them with whitespace:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-groupId "net.vz.mongodb.jackson" % "mongo-jackson-mapper" % "1.4.1"
+<pre class="prettyprint"><code class="language-scala">groupId "net.vz.mongodb.jackson" % "mongo-jackson-mapper" % "1.4.1"
 </code></pre>
 
 <p>
@@ -133,32 +126,28 @@ For me, this was the weirdest feature of Scala when I first learnt it.  It sound
 Scala has a concept of implicit methods (and fields, but right now let's only worry about methods).  When a method that you call doesn't exist on the object that you're trying to invoke it on, it will check the current scope for any implicit methods that take the type of your object as an argument.  If the implicit methods result has a method that matches the method you are trying to invoke, then Scala wraps your object in that implicit method call.  Have I lost you?  Let's look at some code:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-implicit def groupId(groupId: String) = new GroupId(groupId)
+<pre class="prettyprint"><code class="language-scala">implicit def groupId(groupId: String) = new GroupId(groupId)
 </code></pre>
 
 <p>
 So the only change I've made to the <code>groupId</code> method is that it is now implicit.  When I define my dependency, I do this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-"net.vz.mongodb.jackson" % "mongo-jackson-mapper" % "1.4.1"
+<pre class="prettyprint"><code class="language-scala">"net.vz.mongodb.jackson" % "mongo-jackson-mapper" % "1.4.1"
 </code></pre>
 
 <p>
 Notice that the call to <code>groupId</code> has completely disappeared.  If at this point our newly learned Scala syntax is a bit overwhelming for you, maybe it would help to see what would happen if we applied the implicit rule first, before we got rid of our dots and braces, and before we changed our method names to percent signs:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-"net.vz.mongodb.jackson".artifact("mongo-jackson-mapper").version("1.4.1")
+<pre class="prettyprint"><code class="language-scala">"net.vz.mongodb.jackson".artifact("mongo-jackson-mapper").version("1.4.1")
 </code></pre>
 
 <p>
 What it looks like is that the <code>String</code> class has a method called <code>artifact</code>.  But we know it doesn't, and the Scala compiler knows it doesn't.  When it sees that, it says "are there any implicit methods available that accept a <code>String</code> as an argument, and return a type that has an <code>artifact</code> method?"  And so it finds the <code>groupId</code> method, which matches that criteria, and converts the code to this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-groupId("net.vz.mongodb.jackson").artifact("mongo-jackson-mapper").version("1.4.1")
+<pre class="prettyprint"><code class="language-scala">groupId("net.vz.mongodb.jackson").artifact("mongo-jackson-mapper").version("1.4.1")
 </code></pre>
 
 <p>
@@ -175,16 +164,14 @@ On a side note, Scala actually uses this to add functional methods to the Java c
 There is one last step, and that is to show what we actually do with the dependency we've declared.  In maven, our XML ends up being part of the rest of the overly verbose POM file.  In SBT, there is a file called <code>build.sbt</code> that contains snippets of Scala, which build up the configuration.  Available to the snippets are certain variables, for example, <code>libraryDependencies</code>, which contain the configuration.  So adding my dependency to my SBT project means adding a line to the <code>build.sbt</code> file, like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-libraryDependencies += "net.vz.mongodb.jackson" % "mongo-jackson-mapper" % "1.4.1"
+<pre class="prettyprint"><code class="language-scala">libraryDependencies += "net.vz.mongodb.jackson" % "mongo-jackson-mapper" % "1.4.1"
 </code></pre>
 
 <p>
 You may notice here that there is another use of infix operator named methods, <code>+=</code> is a method defined in mutable collections for adding elements.  Multiple dependencies can be added more tersely like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-libraryDependencies ++= Seq(
+<pre class="prettyprint"><code class="language-scala">libraryDependencies ++= Seq(
     "net.vz.mongodb.jackson" % "mongo-jackson-mapper" % "1.4.1",
     "net.vz.mongodb.jackson" % "play-mongo-jackson-mapper" % "1.0.0"
 )

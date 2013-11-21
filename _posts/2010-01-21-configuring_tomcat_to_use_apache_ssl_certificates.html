@@ -1,6 +1,6 @@
 ---
 title: Configuring Tomcat to use Apache SSL certificates
-date: 2010/01/21 10:55
+date: 2010-01-21T10:55:00.000+11:00
 tags: tomcat ssl apache java
 ---
 <p>
@@ -28,8 +28,7 @@ openssl pkcs12 -export -in mycert.crt -inkey mykey.key \
 The <tt>name</tt> and <tt>caname</tt> arguments can be anything, they're just convenient aliases to allow later manipulation of the file.  The command will prompt you for a password, this password gets set as the <tt>keystorePass</tt> in the Tomcat connector configuration.  The <tt>keystoreType</tt> must be set to <tt>PKCS12</tt>.  Here is my Tomcat configuration:
 </p>
 
-<pre class="prettyprint"><code class="language-xml">
-    &lt;Connector port="8443" maxHttpHeaderSize="8192"
+<pre class="prettyprint"><code class="language-xml">    &lt;Connector port="8443" maxHttpHeaderSize="8192"
                maxThreads="150" enableLookups="false" acceptCount="100"
                connectionTimeout="20000" disableUploadTimeout="true"
                protocol="org.apache.coyote.http11.Http11NioProtocol"

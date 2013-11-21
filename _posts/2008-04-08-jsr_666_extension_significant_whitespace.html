@@ -1,14 +1,13 @@
 ---
 title: JSR-666 Extension: Significant whitespace
-date: 2008/04/08 00:20
+date: 2008-04-08T00:20:00.000+10:00
 tags: jsr-666
 ---
 <p>
 In many software development teams that I've worked on, code reviews are done by printing out the code to be reviewed.  This is in turn read and scribbled on with red ink by developers suffering from a delusion that their coding standard is better than mine.  An example of some such code:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-public boolean equals(Object o)
+<pre class="prettyprint"><code class="language-java">public boolean equals(Object o)
 {
    try
    {
@@ -39,8 +38,7 @@ When reading the above code, the obvious problem that jumps out is that it conta
 The previous code example would become:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-public boolean equals(Object o)
+<pre class="prettyprint"><code class="language-java">public boolean equals(Object o)
    try
       if (Calendar.getInstance().get(Calendar.MONTH) == 1
             && Calendar.getInstance().get(Calendar.DATE) == 29)

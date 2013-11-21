@@ -1,6 +1,6 @@
 ---
 title: Cracking Random Number Generators - Part 4
-date: 2010/09/25 01:40
+date: 2010-09-25T01:40:58.570+10:00
 tags: prng
 ---
 <p>
@@ -13,8 +13,7 @@ In <a href="2010/09/22/cracking_random_number_generators_part_3.html">Part 3</a>
 Before we go on, let's look again at the algorithm for generating the next value for <tt>state[i]</tt>:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-int y = (state[i] &amp; 0x80000000) + (state[(i + 1) % 624] &amp; 0x7fffffff);
+<pre class="prettyprint"><code class="language-java">int y = (state[i] &amp; 0x80000000) + (state[(i + 1) % 624] &amp; 0x7fffffff);
 int next = y &gt;&gt;&gt; 1;
 if ((y &amp 1L) == 1L) {
   next ^= 0x9908b0df;
@@ -58,8 +57,7 @@ However, as we work backwards through the state, we will already have calculated
 Putting it all together, our algorithm looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-for (int i = 623; i >= 0; i--) {
+<pre class="prettyprint"><code class="language-java">for (int i = 623; i >= 0; i--) {
   int result = 0;
   // first we calculate the first bit
   int tmp = state[i];

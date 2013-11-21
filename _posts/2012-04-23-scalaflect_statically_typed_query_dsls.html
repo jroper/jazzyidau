@@ -1,6 +1,6 @@
 ---
 title: ScalaFlect: Statically typed query DSLs
-date: 2012/04/23 05:16
+date: 2012-04-23T05:16:45.497+10:00
 tags: scala reflection scalaflect
 ---
 <p>
@@ -17,8 +17,7 @@ Today I started a new open source project called <a href="https://github.com/jro
 So to start off, I have some case classes, a <tt>BlogPost</tt>, and a <tt>Comment</tt>, with a one to many relationship between blog posts and comments:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-case class BlogPost(author: String, title: String, published: Boolean,
+<pre class="prettyprint"><code class="language-scala">case class BlogPost(author: String, title: String, published: Boolean,
   tags: Set[String], comments: List[Comment])
 case class Comment(author: String, text: String)
 </code></pre>
@@ -27,8 +26,7 @@ case class Comment(author: String, text: String)
 Now I have implemented my DSL by implementing an abstract class that provides the basic elements of my DSL.  This class is called <tt>ObjectListDao</tt>, and as the name suggests, it stores objects in a list.  But it could just as easily be storing objects in a database like MongoDB.  Let's look at a DAO that uses this DSL:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class BlogPostDao extends ObjectListDao(classOf[BlogPost]) {
+<pre class="prettyprint"><code class="language-scala">class BlogPostDao extends ObjectListDao(classOf[BlogPost]) {
   import au.id.jazzy.scalaflect.ScalaFlect.toTraverser
 
   def findByAuthor(author: String) = {
@@ -62,8 +60,7 @@ So the first thing you notice is the static access to properties.  The <tt>$</tt
 So how have I implemented my DSL?  Quite simply.  Here is the code:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class ObjectListDao[T](val clazz: Class[T]) {
+<pre class="prettyprint"><code class="language-scala">class ObjectListDao[T](val clazz: Class[T]) {
   private val scalaFlect = new ScalaFlect(clazz)
   private val list = new ListBuffer[T]
 

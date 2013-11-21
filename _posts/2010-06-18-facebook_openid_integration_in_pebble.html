@@ -1,6 +1,6 @@
 ---
 title: Facebook OpenID integration in Pebble
-date: 2010/06/18 22:14
+date: 2010-06-18T22:14:32.737+10:00
 tags: facebook openid pebble
 ---
 <p>
@@ -27,8 +27,7 @@ Facebook provides some simple instructions on how to do this <a href="http://wik
 There are a number of ways to do this, but the simplest way is to use the Facebook Markup Language (FML).  In the next step we'll configure Facebook to render FML tags, for now, the only thing you need to do is put the following code where you want the login button to appear:
 </p>
 
-<pre class="prettyprint"><code class="language-html">
-&lt;fb:login-button/&gt;
+<pre class="prettyprint"><code class="language-html">&lt;fb:login-button/&gt;
 </code></pre>
 
 <h2>3. Initialise the Facebook API</h2>
@@ -37,8 +36,7 @@ There are a number of ways to do this, but the simplest way is to use the Facebo
 The Facebook client side libraries require that they be initialised.  This is also the stage where Facebook will render any FML tags you've included in the page.  Initialising the Facebook client side API is best done at the bottom of the page, so that it doesn't slow down the loading of the rest of the page.  At this stage you'll need the Facebook application ID from the application you created in step one:
 </p>
 
-<pre class="prettyprint"><code class="language-html">
-&lt;div id="fb-root"&gt;&lt;/div&gt;
+<pre class="prettyprint"><code class="language-html">&lt;div id="fb-root"&gt;&lt;/div&gt;
 &lt;script src="http://connect.facebook.net/en_US/all.js"&gt;&lt;/script&gt;
 &lt;script&gt;
     FB.init({appId: "YOUAPPIDHERE", status: false, cookie: true, xfbml: true});
@@ -51,8 +49,7 @@ The Facebook client side libraries require that they be initialised.  This is al
 This is where we do most of the work.  The Facebook javascript API provides an event library, and we can use this to update our page with the users details after they log in to Facebook.  This event will only fire when the user logs in or logs out, if a user comes back to your site, and they are already logged in, the event won't fire, even if they click log in, hence we also need to check if the user is already logged in when the page loads.  So we're going to write a function that will handle both of these situations.  The function accepts a Facebook response object, and checks if the response has a session.  This indicates that the user is logged in.  If they are logged in, we make a call on the <tt>/me</tt> resource of the Facebook Graph API, which will return the users name, link to their profile, and other things.  This function can go anywhere in your code, preferably in a Javascript file along with the rest of your scripts:
 </p>
 
-<pre class="prettyprint"><code class="language-javascript">
-  function updateFacebookCommentAuthor(response) {
+<pre class="prettyprint"><code class="language-javascript">  function updateFacebookCommentAuthor(response) {
     if (response.session) {
       FB.api("/me", function(response) {
         var avatar = "http://graph.facebook.com/" + response.id + "/picture?type=square";
@@ -70,8 +67,7 @@ This is where we do most of the work.  The Facebook javascript API provides an e
 Lastly, we want the above function to be called when a page loads if the user is already logged in, and if a user logs in clicking the login function.  This can either be done at the bottom of the page after the Facebook API is initialised, or it can be done in in the window on load event.  Pebble uses prototype, so I bind it to the window on load event using that:
 </p>
 
-<pre class="prettyprint"><code class="language-javascript">
-  Event.observe(window, "load", function() {
+<pre class="prettyprint"><code class="language-javascript">  Event.observe(window, "load", function() {
     FB.Event.subscribe("auth.sessionChange", updateFacebookCommentAuthor);
     FB.getLoginStatus(updateFacebookCommentAuthor);
   });

@@ -1,6 +1,6 @@
 ---
 title: Call response WebSockets in Play Framework
-date: 2013/06/12 03:09
+date: 2013-06-12T03:09:12.851+10:00
 tags: scala iteratee play
 ---
 <p>
@@ -23,8 +23,7 @@ There are possibly more use cases - WebSockets is quite a new technology and as 
 A Play WebSocket is implemented by providing an iteratee that consumes messages from the client, and an enumerator that produces messages for the client.  If we simply wanted to echo every message that the client sent us, then we would want to return an iteratee whose input becomes the output of the enumerator that we return.  Play doesn't come with anything out of the box to do this, but we will probably add something out of the box that does this in a future release.  For now, I'm going to write a method called <tt>joined</tt>, that returns a joined iteratee/enumerator pair:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-/**
+<pre class="prettyprint"><code class="language-scala">/**
  * Create a joined iteratee enumerator pair.
  *
  * When the enumerator is applied to an iteratee, the iteratee subsequently consumes whatever the iteratee in the pair
@@ -76,8 +75,7 @@ This code might be a little scary if you don't understand iteratees, but as I sa
 Now that we have our joined iteratee/enumerator, let's implement an echo WebSocket.  For the rest of this post we'll be assuming that all our WebSockets are sending/receiving JSON messages.
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def echo = WebSocket.using[JsValue] { req =&gt;
+<pre class="prettyprint"><code class="language-scala">def echo = WebSocket.using[JsValue] { req =&gt;
   joined[JsValue]
 }
 </code></pre>
@@ -92,8 +90,7 @@ So now we have an echo call/response WebSocket.  But this is not very useful, we
 So now that we've expressed our call/response in terms of a joined iteratee/enumerator, how can we transform the call messages to be different response messages?  The answer is enumeratees.  Enumeratees can be used to transform iteratees and enumerators.  We return both an enumerator and an iteratee, so which one do we transform?  The answer is it doesn't matter, I'm going to use it to transform the iteratee.  The enumeratee that we're going to use is the map enumeratee:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def process = WebSocket.using[JsValue] { req =&gt;
+<pre class="prettyprint"><code class="language-scala">def process = WebSocket.using[JsValue] { req =&gt;
   val (iter, enum) = joined[JsValue]
 
   (Enumeratee.map[JsValue] { json =&gt;
@@ -113,8 +110,7 @@ Enumeratees are one of the most powerful features of iteratees for end users.  Y
 What if we don't want to return a response to every message?  There are numerous ways to do this, but the simplest is to use the <tt>collect</tt> enumeratee, which takes a partial function:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def process = WebSocket.using[JsValue] { req =&gt;
+<pre class="prettyprint"><code class="language-scala">def process = WebSocket.using[JsValue] { req =&gt;
   val (iter, enum) = joined[JsValue]
 
   (Enumeratee.collect[JsValue] { 
@@ -131,8 +127,7 @@ def process = WebSocket.using[JsValue] { req =&gt;
 Perhaps we want to produce many responses for a single input.  The <tt>mapConcat</tt> enumeratee can be used in this case, with our map function returning a sequence of <tt>JsValue</tt> messages to return:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def process = WebSocket.using[JsValue] { req =&gt;
+<pre class="prettyprint"><code class="language-scala">def process = WebSocket.using[JsValue] { req =&gt;
   val (iter, enum) = joined[JsValue]
 
   (Enumeratee.mapConcat[JsValue] { json =&gt;
@@ -151,8 +146,7 @@ def process = WebSocket.using[JsValue] { req =&gt;
 What if we want to do some blocking operations?  In Play 2.2, this will be able to be done simply by providing an execution context suitable for blocking calls to whichever enumeratee you decide to use, but Play 2.1 does not yet support this, so we have to dispatch the callback to another execution context ourselves.  This can be done using the <tt>mapM</tt> enumeratee:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val ec: ExecutionContext = ...
+<pre class="prettyprint"><code class="language-scala">val ec: ExecutionContext = ...
 
 def process = WebSocket.using[JsValue] { req =&gt;
   val (iter, enum) = joined[JsValue]
@@ -171,8 +165,7 @@ def process = WebSocket.using[JsValue] { req =&gt;
 You may want to combine your call/response messages with messages from some other enumerator that spontaneously pushes messages to the client, for example a broadcasting enumerator for all clients.  This can be done by interleaving your joined enumerator with the external enumerator:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val globalEvents: Enumerator[JsValue] = ...
+<pre class="prettyprint"><code class="language-scala">val globalEvents: Enumerator[JsValue] = ...
 
 def process = WebSocket.using[JsValue] { req =&gt;
   val (iter, enum) = joined[JsValue]

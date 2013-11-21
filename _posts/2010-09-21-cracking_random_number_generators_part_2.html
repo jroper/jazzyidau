@@ -1,6 +1,6 @@
 ---
 title: Cracking Random Number Generators - Part 2
-date: 2010/09/21 18:38
+date: 2010-09-21T18:38:47.570+10:00
 tags: prng
 ---
 <p>
@@ -111,8 +111,7 @@ Continuing this process, of scanning from right to left, taking the next digit i
 This only works if our multiplier is odd, which it is.  If it weren't, we would only have to bitshift the seed to the left by the number of 0's on the end of the multiplier, and every bit that we shifted across would be one less bit of the final result that we could determine.  So our algorithm for determining the previous seed looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-long seed = currentSeed;
+<pre class="prettyprint"><code class="language-java">long seed = currentSeed;
 // reverse the addend from the seed
 seed -= addend; // reverse the addend
 long result = 0;

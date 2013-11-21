@@ -1,6 +1,6 @@
 ---
 title: Iteratees for imperative programmers
-date: 2012/11/06 09:28
+date: 2012-11-06T09:28:48.120+11:00
 tags: scala iteratee play
 ---
 <p>
@@ -17,8 +17,7 @@ So let's start off with explaining what iteratees, and their counterparts, are t
 If you're looking for information about iteratees, then I'm guessing you already know a bit about what reactive stream handling is.  Let's contrast it to synchronous IO code:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait InputStream {
+<pre class="prettyprint"><code class="language-scala">trait InputStream {
   def read(): Byte
 }
 </code></pre>
@@ -27,8 +26,7 @@ trait InputStream {
 So this should be very familiar, if you want to read a byte, you call <tt>read</tt>.  If no byte is currently available to be read, that call will block, and your thread will wait until a byte is available.  With reactive streams, obviously it's the other way around, you pass a callback to the stream you want to receive data from, and it will call that when it's ready to give data to you.  So typically you might implement a trait that looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait InputStreamHandler {
+<pre class="prettyprint"><code class="language-scala">trait InputStreamHandler {
   def onByte(byte: Byte)
 }
 </code></pre>
@@ -37,8 +35,7 @@ trait InputStreamHandler {
 So before we go on, let's look at how the same thing would be achieved in a pure functional world.  At this point I don't want you to ask why we want to do things this way, you will see that later on, but if you know anything about functional programming, you know that everything tends to be immutable, and functions have no side effects.  The trait above has to have side effects, because unless you are ignoring the bytes passed to <tt>onByte</tt>, you must be changing your state (or something elses state) somehow in that function.  So, how do we handle data without changing our state?  The answer is the same way other immutable data structures work, we return a copy of ourselves, updated with the new state.  So if the <tt>InputStreamHandler</tt> were to be functional, it might look like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait InputStreamHandler {
+<pre class="prettyprint"><code class="language-scala">trait InputStreamHandler {
   def onByte(byte: Byte): InputStreamHandler
 }
 </code></pre>
@@ -47,8 +44,7 @@ trait InputStreamHandler {
 And an example implementation of one, that reads input into a seq, might look like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class Consume(data: Seq[Byte]) extends InputStreamHandler {
+<pre class="prettyprint"><code class="language-scala">class Consume(data: Seq[Byte]) extends InputStreamHandler {
   def onByte(byte: Byte) = new Consume(data :+ byte)
 }
 </code></pre>
@@ -61,8 +57,7 @@ So we now have imperative and functional traits that react to our input stream, 
 Now this is possible to implement in an imperative world, though things do start looking much more functional.  We simply start using futures:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait InputStreamHandler {
+<pre class="prettyprint"><code class="language-scala">trait InputStreamHandler {
   def onByte(byte: Byte): Future[Unit]
 }
 </code></pre>
@@ -71,8 +66,7 @@ trait InputStreamHandler {
 So, when the stream we are consuming has a byte for us, it calls <tt>onByte</tt>, and then attaches a callback to the future we return, to pass the next byte, when it's ready.  If you have a look at Netty's asynchronous channel APIs, you'll see it uses exactly this pattern.  We can also implement something similar for an immutable functional API:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait InputStreamHandler {
+<pre class="prettyprint"><code class="language-scala">trait InputStreamHandler {
   def onByte(byte: Byte): Future[InputStreamHandler]
 }
 </code></pre>
@@ -91,8 +85,7 @@ So, by this stage I hope you have understood two important points.  Firstly, rea
 There are a few things that our interface hasn't yet addressed.  The first is, how does the stream communicate to us that it is finished, that is, that it has no more data for us?  To do this, instead of passing in a byte directly, we're going to abstract our byte to be something of type <tt>Input[Byte]</tt>, and that type can have three possible implementations, EOF, an element, or empty.  Let's not worry about why we need empty just yet, but assume for some reason we might want to pass empty.  So this is what <tt>Input</tt> looks like:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-sealed trait Input[+E]
+<pre class="prettyprint"><code class="language-scala">sealed trait Input[+E]
 
 object Input {
   case object EOF extends Input[Nothing]
@@ -105,8 +98,7 @@ object Input {
 Updating our <tt>InputStreamHandler</tt>, we now get something that looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait InputStreamHandler[E] {
+<pre class="prettyprint"><code class="language-scala">trait InputStreamHandler[E] {
   def onInput(in: Input[E]): Future[InputStreamHandler[E]]
 }
 </code></pre>
@@ -115,8 +107,7 @@ trait InputStreamHandler[E] {
 Now updating our <tt>Consumer</tt> from before to handle this, it might look like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class Consume(data: IndexedSeq[Byte]) extends InputStreamHandler[Byte] {
+<pre class="prettyprint"><code class="language-scala">class Consume(data: IndexedSeq[Byte]) extends InputStreamHandler[Byte] {
   def onInput(in: Input[Byte]) = in match {
     case El(byte) =&gt; Future.successful(new Consume(data :+ byte))
     case _ =&gt; Future.successful(this)
@@ -132,8 +123,7 @@ You can see that when we get <tt>EOF</tt> or <tt>Empty</tt>, there's nothing for
 The next thing we're going to do is make it easier for our handler to consume input immediately without having to create a future.  To do this, rather than passing the byte directly, we'll pass a function, that takes a function as a parameter, and that function will take the byte as a parameter.  So, our handler, when it's ready, will create a function to handle the byte, and then invoke the function that was passed to it, with that function.  We'll call the first function the <tt>cont</tt> function, which is short for continue, and means when you're ready to continue receiving input invoke me.   Too many functions?  Let's look at the code:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait InputStreamHandler[E] {
+<pre class="prettyprint"><code class="language-scala">trait InputStreamHandler[E] {
   def onByte[B](cont: (Input[E] =&gt; InputStreamHandler[E]) =&gt; Future[B]): Future[B]
 }
 </code></pre>
@@ -142,8 +132,7 @@ trait InputStreamHandler[E] {
 Now where did this <tt>Future[B]</tt> come from?  <tt>B</tt> is just the mechanism that the stream uses to pass state back to itself.  As the handler, we don't have to worry about what it is, we just have to make sure that we eventually invoke the <tt>cont</tt> function, and eventually make sure that the <tt>B</tt> it returns makes it back to our caller.  And what does this look like in our <tt>Consume</tt> iteratee?  Let's have a look:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class Consume(data: IndexedSeq[Byte]) extends InputStreamHandler {
+<pre class="prettyprint"><code class="language-scala">class Consume(data: IndexedSeq[Byte]) extends InputStreamHandler {
   def onByte(cont: (Input[Byte] =&gt; InputStreamHandler) =&gt; Future[B]) = cont {
     case Input.El(byte) =&gt; new Consume(data :+ byte)
     case _ =&gt; this
@@ -171,8 +160,7 @@ In addition to this, both our <tt>Done</tt> and <tt>Error</tt> states need to co
 So, here's our <tt>Step</tt> trait:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-sealed trait Step[E, +A]
+<pre class="prettyprint"><code class="language-scala">sealed trait Step[E, +A]
 
 object Step {
   case class Done[+A, E](a: A, remaining: Input[E]) extends Step[E, A]
@@ -185,8 +173,7 @@ object Step {
 The type parameter <tt>E</tt> is the type of input our iteratee wants to accept, and <tt>A</tt> is what it's producing.  So our handler trait now looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait InputStreamHandler[E, A] {
+<pre class="prettyprint"><code class="language-scala">trait InputStreamHandler[E, A] {
   def onInput[B](step: Step[E, A] =&gt; Future[B]): Future[B]
 }
 </code></pre>
@@ -195,8 +182,7 @@ trait InputStreamHandler[E, A] {
 And our consumer is implemented like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class Consume(data: Seq[Byte]) extends InputStreamHandler[Byte, Seq[Byte]] {
+<pre class="prettyprint"><code class="language-scala">class Consume(data: Seq[Byte]) extends InputStreamHandler[Byte, Seq[Byte]] {
   def onInput(step: Step[Byte, Seq[Byte]] =&gt; Future[B]) = step(Step.Cont({
     case Input.El(byte) =&gt; new Consume(data :+ byte)
     case Input.EOF =&gt; new InputStreamHandler[Byte, Seq[Byte]] {
@@ -215,8 +201,7 @@ One big difference here that you now notice is when we receive <tt>EOF</tt>, we 
 And so now we've built our iteratee interface.  Our naming isn't quite right though, so we'll rename the trait obviously to <tt>Iteratee</tt>, and we'll rename <tt>onInput</tt> to <tt>fold</tt>, since we are folding our state into one result.  And so now we get our interface:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait Iteratee[E, +A] {
+<pre class="prettyprint"><code class="language-scala">trait Iteratee[E, +A] {
   def fold[B](folder: Step[E, A] =&gt; Future[B]): Future[B]
 }
 </code></pre>
@@ -231,8 +216,7 @@ So far we've started with the requirements of a traditional imperative input str
 So remember how iteratees are immutable?  And remember how iteratees can be in one of three states, cont, done and error, and depending on which state it's in, it will pass its corresponding step class to the folder function?  Well, if an iteratee is immutable and it can be in one of three states, then it can only ever be in that state that it's in, and therefore it will only ever pass that corresponding step to the folder function.  If an iteratee is done, it's done, it doesn't matter how many times you call its <tt>fold</tt> function, it will never become cont or error, and its done value will never change, it will only ever pass the <tt>Done</tt> step to the folder function with the same <tt>A</tt> value and the same left over input.  Because of this, there is only one implementation of a done iteratee that we'll ever need, it looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-case class Done[E, A](a: A, e: Input[E] = Input.Empty) extends Iteratee[E, A] {
+<pre class="prettyprint"><code class="language-scala">case class Done[E, A](a: A, e: Input[E] = Input.Empty) extends Iteratee[E, A] {
   def fold[B](folder: Step[E, A] =&gt; Future[B]): Future[B] = folder(Step.Done(a, e))
 }
 </code></pre>
@@ -241,8 +225,7 @@ case class Done[E, A](a: A, e: Input[E] = Input.Empty) extends Iteratee[E, A] {
 This is the only done iteratee you'll ever need to indicate that you're done.  In the <tt>Consume</tt> iteratee above, when we reached <tt>EOF</tt>, we created a done iteratee using an anonymous inner class, we didn't need to do this, we could have just used the <tt>Done</tt> iteratee above.  The exact same thing holds for error iteratees:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-case class Error[E](msg: String, e: Input[E]) extends Iteratee[E, Nothing] {
+<pre class="prettyprint"><code class="language-scala">case class Error[E](msg: String, e: Input[E]) extends Iteratee[E, Nothing] {
   def fold[B](folder: Step[E, Nothing] =&gt; Future[B]): Future[B] = folder(Step.Error(msg, e))
 }
 </code></pre>
@@ -251,8 +234,7 @@ case class Error[E](msg: String, e: Input[E]) extends Iteratee[E, Nothing] {
 You may be surprised to find out the exact same thing applies to cont iteratees too - a cont iteratee just passes a function the folder, and that function, because the iteratee is immutable, is never going to change.  So consequently, the following iteratee will usually be good enough for your requirements:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-case class Cont[E, A](k: Input[E] =&gt; Iteratee[E, A]) extends Iteratee[E, A] {
+<pre class="prettyprint"><code class="language-scala">case class Cont[E, A](k: Input[E] =&gt; Iteratee[E, A]) extends Iteratee[E, A] {
   def fold[B](folder: Step[E, A] =&gt; Future[B]): Future[B] = folder(Step.Cont(k))
 }
 </code></pre>
@@ -261,8 +243,7 @@ case class Cont[E, A](k: Input[E] =&gt; Iteratee[E, A]) extends Iteratee[E, A] {
 So let's rewrite our consume iteratee to use these helper classes:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def consume(data: Array[Byte]): Iteratee[Byte, Array[Byte]] = Cont {
+<pre class="prettyprint"><code class="language-scala">def consume(data: Array[Byte]): Iteratee[Byte, Array[Byte]] = Cont {
   case Input.El(byte) =&gt; consume(data :+ byte)
   case Input.EOF =&gt; Done(data)
   case Input.Empty =&gt; consume(data)
@@ -279,8 +260,7 @@ Now we're looking a lot simpler, our code is focussed on just handling the diffe
 Our first step will be to write the building blocks of our parser.  First up, we want to write something that skips some kinds of white space.  So let's write a general purpose drop while iteratee:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def dropWhile(p: Char =&gt; Boolean): Iteratee[Char, Unit] = Cont {
+<pre class="prettyprint"><code class="language-scala">def dropWhile(p: Char =&gt; Boolean): Iteratee[Char, Unit] = Cont {
   case in @ Input.El(char) if !p(char) =&gt; Done(Unit, in)
   case in @ Input.EOF =&gt; Done(Unit, in)
   case _ =&gt; dropWhile(p)
@@ -291,16 +271,14 @@ def dropWhile(p: Char =&gt; Boolean): Iteratee[Char, Unit] = Cont {
 Since we're just dropping input, our result is actually <tt>Unit</tt>.  We return <tt>Done</tt> if the predicate doesn't match the current <tt>char</tt>, or if we reach EOF, and otherwise, we return ourselves again.  Note that when we are done, we include the input that was passed into us as the remaining data, because this is going to be needed to be consumed by the next iteratee.  Using this iteratee we can now write an iteratee that drops white space:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def dropSpaces = dropWhile(c =&gt; c == ' ' || c == '\t' || c == '\r')
+<pre class="prettyprint"><code class="language-scala">def dropSpaces = dropWhile(c =&gt; c == ' ' || c == '\t' || c == '\r')
 </code></pre>
 
 <p>
 Next up, we're going to write a take while iteratee, it's going to be a mixture between our earlier consume iteratee, carrying state between each invocation, and the drop while iteratee:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def takeWhile(p: Char =&gt; Boolean, data: Seq[Char] = IndexedSeq[Char]()): Iteratee[Char, Seq[Char]] = Cont {
+<pre class="prettyprint"><code class="language-scala">def takeWhile(p: Char =&gt; Boolean, data: Seq[Char] = IndexedSeq[Char]()): Iteratee[Char, Seq[Char]] = Cont {
   case in @ Input.El(char) =&gt; if (p(char)) {
     takeWhile(p, data :+ char)
   } else {
@@ -315,8 +293,7 @@ def takeWhile(p: Char =&gt; Boolean, data: Seq[Char] = IndexedSeq[Char]()): Iter
 We also want to write a peek iteratee, that looks at what the next input is, without actually consuming it:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def peek: Iteratee[Char, Option[Char]] = Cont {
+<pre class="prettyprint"><code class="language-scala">def peek: Iteratee[Char, Option[Char]] = Cont {
   case in @ Input.El(char) =&gt; Done(Some(char), in)
   case in @ Input.EOF =&gt; Done(None, in)
   case Input.Empty =&gt; peek
@@ -331,8 +308,7 @@ Note that our peek iteratee must return an option, since if it encounters EOF, i
 And finally, we want a take one iteratee:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def takeOne: Iteratee[Char, Option[Char]] = Cont {
+<pre class="prettyprint"><code class="language-scala">def takeOne: Iteratee[Char, Option[Char]] = Cont {
   case in @ Input.El(char) =&gt; Done(Some(char))
   case in @ Input.EOF =&gt; Done(None, in)
   case Input.Empty =&gt; takeOne
@@ -343,8 +319,7 @@ def takeOne: Iteratee[Char, Option[Char]] = Cont {
 Using the take one iteratee, we'll build an expect iteratee, that mandates that a certain character must appear next otherwise it throws an error:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def expect(char: Char): Iteratee[Char, Unit] = takeOne.flatMap {
+<pre class="prettyprint"><code class="language-scala">def expect(char: Char): Iteratee[Char, Unit] = takeOne.flatMap {
   case Some(c) if c == char =&gt; Done(Unit)
   case Some(c) =&gt; Error("Expected " + char + " but got " + c, Input.El(c))
   case None =&gt; Error("Premature end of input, expected: " + char, Input.EOF)
@@ -359,8 +334,7 @@ Notice the use of <tt>flatMap</tt> here.  If you haven't come across it before, 
 Now with our building blocks, we are ready to start building our CSV parser.  The first part of it that we'll write is an unquoted value parser.  This is very simple, we just want to take all characters that aren't a comma or new line, with one catch.  We want the result to be a String, not a <tt>Seq[Char]</tt> like <tt>takeWhile</tt> produces.  Let's see how we do that:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def unquoted = takeWhile(c =&gt; c != ',' &amp;&amp; c != '\n').map(v =&gt; v.mkString.trim)
+<pre class="prettyprint"><code class="language-scala">def unquoted = takeWhile(c =&gt; c != ',' &amp;&amp; c != '\n').map(v =&gt; v.mkString.trim)
 </code></pre>
 
 <p>
@@ -371,8 +345,7 @@ As you can see, we've used the <tt>map</tt> function to transform the end result
 Our next task is to parse a quoted value.  Let's start with an implementation that doesn't take into account escaped quotes.  To parse a quoted value, we need to expect a quote, and then we need to take any value that is not a quote, and then we need to expect a quote.  Notice that during that sentence I said "and then" 2 times?  What method can we use to do an "and then"?  That's right, the <tt>flatMap</tt> method that I talked about before.  Let's see what our quoted value parser looks like:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def quoted = expect('"')
+<pre class="prettyprint"><code class="language-scala">def quoted = expect('"')
   .flatMap(_ =&gt; takeWhile(_ != '"'))
   .flatMap(value =&gt; expect('"')
     .map(_ =&gt; value.mkString))
@@ -382,8 +355,7 @@ def quoted = expect('"')
 So now you can probably start to see the usefulness of <tt>flatMap</tt>.  In fact it is so useful, not just for iteratees, but many other things, that Scala has a special syntax for it, called for comprehensions.  Let's rewrite the above iteratee using that:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def quoted = for {
+<pre class="prettyprint"><code class="language-scala">def quoted = for {
   _     &lt;- expect('"')
   value &lt;- takeWhile(_ != '"')
   _     &lt;- expect('"')
@@ -402,8 +374,7 @@ Now in case you're not 100% sure about the above syntax, the values to the left 
 So now that we understand that, let's rewrite our <tt>quoted</tt> iteratee to support escaped quotes.  After reading our quote, we want to peek at the next character.  If it's a quote, then we want to append the value we just read, plus a quote to our cumulated value, and recursively invoke the quoted iteratee again.  Otherwise, we've reached the end of the value.
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def quoted(value: Seq[Char] = IndexedSeq[Char]()): Iteratee[Char, String] = for {
+<pre class="prettyprint"><code class="language-scala">def quoted(value: Seq[Char] = IndexedSeq[Char]()): Iteratee[Char, String] = for {
   _          &lt;- expect('"')
   maybeValue &lt;- takeWhile(_ != '"')
   _          &lt;- expect('"')
@@ -419,8 +390,7 @@ def quoted(value: Seq[Char] = IndexedSeq[Char]()): Iteratee[Char, String] = for 
 Now we need to write an iteratee that can parse either a quoted or unquoted value.  We choose which one by peeking at the first character, and then accordingly returning the right iteratee.
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def value = for {
+<pre class="prettyprint"><code class="language-scala">def value = for {
   char  &lt;- peek
   value &lt;- char match {
     case Some('"') =&gt; quoted()
@@ -434,8 +404,7 @@ def value = for {
 Let's now parse an entire line, reading until the end of line character.
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def values(state: Seq[String] = IndexedSeq[String]()): Iteratee[Char, Seq[String]] = for {
+<pre class="prettyprint"><code class="language-scala">def values(state: Seq[String] = IndexedSeq[String]()): Iteratee[Char, Seq[String]] = for {
   _        &lt;- dropSpaces
   value    &lt;- value
   _        &lt;- dropSpaces
@@ -454,16 +423,14 @@ def values(state: Seq[String] = IndexedSeq[String]()): Iteratee[Char, Seq[String
 Now, in a similar way to how we parse the values, we could also parse each line of a CSV file until we reach EOF.  But this time we're going to do something a little different.  We've seen how we can sequence iteratees using <tt>flatMap</tt>, but there are further possibilities for composing iteratees.  Another concept in iteratees is enumeratees.  Enumeratees adapt a stream to be consumed by an iteratee.  The simplest enumeratees simply map the input values of the stream to be something else.  So, for example, here's an enumeratee that converts a stream of strings to a stream of ints:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def toInt: Enumeratee[String,Int] = Enumeratee.map[String](_.toInt)
+<pre class="prettyprint"><code class="language-scala">def toInt: Enumeratee[String,Int] = Enumeratee.map[String](_.toInt)
 </code></pre>
 
 <p>
 One of the methods on <tt>Enumeratee</tt> is <tt>transform</tt>.  We can use this method to apply an enumeratee to an iteratee:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val someIteratee: Iteratee[Int, X] = ...
+<pre class="prettyprint"><code class="language-scala">val someIteratee: Iteratee[Int, X] = ...
 val adaptedIteratee: Iteratee[String, X] = toInt.transform(someIteratee)
 </code></pre>
 
@@ -471,40 +438,35 @@ val adaptedIteratee: Iteratee[String, X] = toInt.transform(someIteratee)
 This method is also aliased to an operator, <tt>&amp;&gt;&gt;</tt>, and so this code below is equivalent to the code above:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val adaptedIteratee: Iteratee[String, X] = toInt &amp;&gt;&gt; someIteratee
+<pre class="prettyprint"><code class="language-scala">val adaptedIteratee: Iteratee[String, X] = toInt &amp;&gt;&gt; someIteratee
 </code></pre>
 
 <p>
 We can also make an enumeratee out of another iteratee, and this is exactly what we're going to do with our <tt>values</tt> iteratee.  The <tt>Enumeratee.grouped</tt> method takes an iteratee and applies it to the stream over and over, the result of each application being an input to feed into the the iteratee that will be transformed.  Let's have a look:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def csv = Enumeratee.grouped(values())
+<pre class="prettyprint"><code class="language-scala">def csv = Enumeratee.grouped(values())
 </code></pre>
 
 <p>
 Now let's get a little bit more creative with enumeratees.  Let's say that our CSV file is very big, so we don't want to load it into memory.  Each line is a series of 3 integer columns, and we want to sum each column.  So, let's define an enumeratee that converts each set of values to integers:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def toInts = Enumeratee.map[Seq[String]](_.map(_.toInt))
+<pre class="prettyprint"><code class="language-scala">def toInts = Enumeratee.map[Seq[String]](_.map(_.toInt))
 </code></pre>
 
 <p>
 And another enumeratee to convert the sequence to a 3-tuple:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def toThreeTuple = Enumeratee.map[Seq[Int]](s =&gt; (s(0), s(1), s(2)))
+<pre class="prettyprint"><code class="language-scala">def toThreeTuple = Enumeratee.map[Seq[Int]](s =&gt; (s(0), s(1), s(2)))
 </code></pre>
 
 <p>
 And finally an iteratee to sum the them:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def sumThreeTuple(a: Int = 0, b: Int = 0, c: Int = 0): Iteratee[(Int, Int, Int), (Int, Int, Int)] = Cont {
+<pre class="prettyprint"><code class="language-scala">def sumThreeTuple(a: Int = 0, b: Int = 0, c: Int = 0): Iteratee[(Int, Int, Int), (Int, Int, Int)] = Cont {
   case Input.El((x, y, z)) =&gt; sumThreeTuple(a + x, b + y, c + z)
   case Input.Empty =&gt; sumThreeTuple(a, b, c)
   case in @ Input.EOF =&gt; Done((a, b, c), in)
@@ -515,8 +477,7 @@ def sumThreeTuple(a: Int = 0, b: Int = 0, c: Int = 0): Iteratee[(Int, Int, Int),
 Now to put them all together.  There is another method on enumeratee called <tt>compose</tt>, which, you guessed it, let's you compose enumeratees.  This has an alias operator, <tt>&gt;&lt;&gt;</tt>.  Let's use it: 
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val processCsvFile = csv &gt;&lt;&gt; toInts &gt;&lt;&gt; toThreeTuple &amp;&gt;&gt; sumThreeTuple()
+<pre class="prettyprint"><code class="language-scala">val processCsvFile = csv &gt;&lt;&gt; toInts &gt;&lt;&gt; toThreeTuple &amp;&gt;&gt; sumThreeTuple()
 </code></pre>
 
 <h2>Enumerators</h2>
@@ -529,8 +490,7 @@ Finally, if an iteratee consumes a stream, what produces a stream?  The answer i
 The Play enumerator API makes it easy to create an enumerator by passing a sequence of inputs to the <tt>Enumerator</tt> companion objects <tt>apply</tt> method.  So, we can create an enumerator of characters using the following code:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val csvFile = Enumerator(
+<pre class="prettyprint"><code class="language-scala">val csvFile = Enumerator(
   """1,2,3
     |4,5,6""".stripMargin.toCharArray:_*)
 </code></pre>
@@ -539,8 +499,7 @@ val csvFile = Enumerator(
 And we can feed this into our iteratee like so:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val result = csvFile |&gt;&gt;&gt; processCsvFile
+<pre class="prettyprint"><code class="language-scala">val result = csvFile |&gt;&gt;&gt; processCsvFile
 </code></pre>
 
 <p>

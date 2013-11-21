@@ -1,6 +1,6 @@
 ---
 title: Java Concurrency and Volatile
-date: 2009/04/24 09:41
+date: 2009-04-24T09:41:00.000+10:00
 tags: java concurrency volatile
 ---
 <p>
@@ -15,8 +15,7 @@ For this demonstration, you will need a multi processor Linux 2.6 or OpenSolaris
 So on to the puzzle.  Without executing it, try and work out what will happen when you run the following code:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-public class ConcurrencyFun implements Runnable
+<pre class="prettyprint"><code class="language-java">public class ConcurrencyFun implements Runnable
 {
     private String str;
     void setStr(String str)
@@ -58,8 +57,7 @@ This is where the volatile keyword comes in.  The volatile keyword tells the JVM
 So, adding the volatile keyword, like so:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-public class ConcurrencyFun implements Runnable
+<pre class="prettyprint"><code class="language-java">public class ConcurrencyFun implements Runnable
 {
     private volatile String str;
     void setStr(String str)

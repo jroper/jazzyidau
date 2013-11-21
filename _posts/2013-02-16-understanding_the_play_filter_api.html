@@ -1,14 +1,13 @@
 ---
 title: Understanding the Play Filter API
-date: 2013/02/16 02:30
+date: 2013-02-16T02:30:41.769+11:00
 tags: scala play
 ---
 <p>
 With Play 2.1 hot off the press, there have been a lot of people asking about the new Play filter API.  In actual fact, the API is incredibly simple:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait EssentialFilter {
+<pre class="prettyprint"><code class="language-scala">trait EssentialFilter {
   def apply(next: EssentialAction): EssentialAction
 }
 </code></pre>
@@ -17,8 +16,7 @@ trait EssentialFilter {
 Essentially, a filter is just a function that takes an action and returns another action.  The usual thing that would be done by the filter is wrap the action, invoking it as a delegate.  To then add a filter to your application, you just add it to your Global <code>doFilter</code> method.  We provide a helper class to do that for you:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-object Global extends WithFilters(MyFilter) {
+<pre class="prettyprint"><code class="language-scala">object Global extends WithFilters(MyFilter) {
   ...
 }
 </code></pre>
@@ -49,8 +47,7 @@ The next thing that happens in an HTTP request is that the http response must be
 All of this is captured in Plays <code>EssentialAction</code> trait:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait EssentialAction extends (RequestHeader =&gt; Iteratee[Array[Byte], Result])
+<pre class="prettyprint"><code class="language-scala">trait EssentialAction extends (RequestHeader =&gt; Iteratee[Array[Byte], Result])
 </code></pre>
 
 <p>
@@ -69,8 +66,7 @@ Before I go on, I'd like to point out that Play provides a helper trait called <
 To demonstrate what a filter looks like, the first thing I will show is a noop filter:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class NoopFilter extends EssentialFilter {
+<pre class="prettyprint"><code class="language-scala">class NoopFilter extends EssentialFilter {
   def apply(next: EssentialAction) = new EssentialAction {
     def apply(request: RequestHeader) = {
       next(request)
@@ -89,8 +85,7 @@ Each time the filter is executed, we create a new <code>EssentialAction</code> t
 Let's say we want to look at the request header, and conditionally invoke the wrapped action based on what we inspect.  An example of a filter that would do that might be a blanket security policy for the <code>/admin</code> area of your website.  This might look like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class AdminFilter extends EssentialFilter {
+<pre class="prettyprint"><code class="language-scala">class AdminFilter extends EssentialFilter {
   def apply(next: EssentialAction) = new EssentialAction {
     def apply(request: RequestHeader) = {
       if (request.path.startsWith("/admin") && request.session.get("user").isEmpty) {
@@ -117,8 +112,7 @@ In some cases, you might want to do something with the body in your filter.  In 
 However there are some things that can be easily be done at the filter level.  One example is gzip decompression.  Play framework already provides gzip decompression out of the box, but if it didn't this is what it might look like (using the gunzip enumeratee from my <a href="https://github.com/jroper/play-iteratees-extras">play extra iteratees project</a>):
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class GunzipFilter extends EssentialFilter {
+<pre class="prettyprint"><code class="language-scala">class GunzipFilter extends EssentialFilter {
   def apply(next: EssentialAction) = new EssentialAction {
     def apply(request: RequestHeader) = {
       if (request.headers.get("Content-Encoding").exists(_ == "gzip")) {
@@ -139,8 +133,7 @@ class GunzipFilter extends EssentialFilter {
 When you're filtering you will often want to do something to the response that is being sent.  If you just want to add a header, or add something to the session, or do any write operation on the response, without actually reading it, then this is quite simple.  For example, let's say you wanted to add a custom header to every response:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class SosFilter extends EssentialFilter {
+<pre class="prettyprint"><code class="language-scala">class SosFilter extends EssentialFilter {
   def apply(next: EssentialAction) = new EssentialAction {
     def apply(request: RequestHeader) = {
       next(request).map(result =&gt; 
@@ -162,8 +155,7 @@ If however you want to read the result, then you'll need to unwrap it.  Play res
 So let's say you want to add a timestamp to every newly created session to record when it was created.  This could be done like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class SessionTimestampFilter extends EssentialFilter {
+<pre class="prettyprint"><code class="language-scala">class SessionTimestampFilter extends EssentialFilter {
   def apply(next: EssentialAction) = new EssentialAction {
     def apply(request: RequestHeader) = {
 
@@ -195,8 +187,7 @@ The final thing you might want to do is transform the response body.  <code>Plai
 An example of something you might want to do is implement a gzip filter.  A very naive implementation (as in, do not use this, instead use my complete implementation from my <a href="https://github.com/jroper/play-iteratees-extras">play extra iteratees project</a>) might look like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class GzipFilter extends EssentialFilter {
+<pre class="prettyprint"><code class="language-scala">class GzipFilter extends EssentialFilter {
   def apply(next: EssentialAction) = new EssentialAction {
     def apply(request: RequestHeader) = {
 
@@ -221,8 +212,7 @@ class GzipFilter extends EssentialFilter {
 Now you've seen how you can achieve everything using the base <code>EssentialFilter</code> API, and hopefully therefore you understand how filters fit into Play's architecture and how you can utilise them to achieve your requirements.  Let's now have a look at the simpler API:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait Filter extends EssentialFilter {
+<pre class="prettyprint"><code class="language-scala">trait Filter extends EssentialFilter {
   def apply(f: RequestHeader =&gt; Result)(rh: RequestHeader): Result
   def apply(next: EssentialAction): EssentialAction = {
     ...
@@ -244,8 +234,7 @@ Simply put, this API allows you to write filters without having to worry about b
 To demonstrate, a noop filter class looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-class NoopFilter extends Filter {
+<pre class="prettyprint"><code class="language-scala">class NoopFilter extends Filter {
   def apply(f: (RequestHeader) =&gt; Result)(rh: RequestHeader) = {
     f(rh)
   }
@@ -256,8 +245,7 @@ class NoopFilter extends Filter {
 Or, using the <code>Filter</code> companion object:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val noopFilter = Filter { (next, req) =&gt;
+<pre class="prettyprint"><code class="language-scala">val noopFilter = Filter { (next, req) =&gt;
   next(req)
 }
 </code></pre>
@@ -266,8 +254,7 @@ val noopFilter = Filter { (next, req) =&gt;
 And a request timing filter might look like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val timingFilter = Filter { (next, req) =&gt;
+<pre class="prettyprint"><code class="language-scala">val timingFilter = Filter { (next, req) =&gt;
   val start = System.currentTimeMillis
 
   def logTime(result: PlainResult): Result = {

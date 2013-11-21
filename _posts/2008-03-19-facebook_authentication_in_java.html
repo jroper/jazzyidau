@@ -1,6 +1,6 @@
 ---
 title: Facebook authentication in Java
-date: 2008/03/19 22:48
+date: 2008-03-19T22:48:43.335+11:00
 tags: java facebook spring
 ---
 <p>If you're a web developer who likes writing practical, quick, and simple utility applications for yourself and others to use, then Facebook is the dream platform.  You don't have to write any user management, sign in, password change pages etc, it comes complete with advanced user management, including friends lists.  There's a high chance that your target users already use it, which makes them more likely to adopt your application because they don't need to go and create yet another username/password on yet another website.  It already has a theme and style sheets, and will present your application surrounded in menus and title bars.  And it provides a large number of ways to publish content and send notifications when events occur.  All these features mean that you, the developer, can spend more time doing what you wanted to do, that is, writing your application.</p>
@@ -22,8 +22,7 @@ tags: java facebook spring
 
 <p>Our next task is to make the client available to the backend service beans that have no knowledge of the HTTP session.  We do this using a ThreadLocal.  We start by creating a wrapper class, UserClientBean, to wrap all calls to the client.  The client itself is stored in a private static ThreadLocal field:</p>
 
-<pre class="prettyprint"><code class="language-java">
-public class UserClientBean
+<pre class="prettyprint"><code class="language-java">public class UserClientBean
 {
     public static void setClient(FacebookXmlRestClient aClient)
     {
@@ -41,8 +40,7 @@ public class UserClientBean
 
 <p>So calling UserClientBean.set() will bind a facebook client to the current thread, and UserClientBean.remove() will remove it.  We make these calls from the servlet filter:</p>
 
-<pre class="prettyprint"><code class="language-java">
-public void doFilter(ServletRequest aRequest, ServletResponse aResponse,
+<pre class="prettyprint"><code class="language-java">public void doFilter(ServletRequest aRequest, ServletResponse aResponse,
         FilterChain aChain) throws IOException, ServletException
 {
     if (aRequest instanceof HttpServletRequest)
@@ -100,8 +98,7 @@ public void doFilter(ServletRequest aRequest, ServletResponse aResponse,
 
 <p>Now that we can access the client as a service, we can add calls as desired to UserClientBean to run on the FaceBookRestClient, and extract the data out in a way that's nice to return to our application.  For example:</p>
 
-<pre class="prettyprint"><code class="language-java">
-public List<Long> getAppFriends()
+<pre class="prettyprint"><code class="language-java">public List<Long> getAppFriends()
 {
     List<Long> result = new ArrayList<Long>();
     try

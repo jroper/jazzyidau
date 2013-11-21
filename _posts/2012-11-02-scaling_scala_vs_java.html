@@ -1,6 +1,6 @@
 ---
 title: Scaling Scala vs Java
-date: 2012/11/02 02:19
+date: 2012-11-02T02:19:37.997+11:00
 tags: scala java
 ---
 <p>
@@ -91,8 +91,7 @@ Now starts the bit where I counter the many anticipated criticisms that people w
 Let's say you have to do a series of calls on a series of remote services, each one depending on data returned from the previous.  Here's a good old fashioned synchronous solution in Java:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-User user = getUserById(id);
+<pre class="prettyprint"><code class="language-java">User user = getUserById(id);
 List&lt;Order&gt; orders = getOrdersForUser(user.email);
 List&lt;Product&gt; products = getProductsForOrders(orders);
 List&lt;Stock&gt; stock = getStockForProducts(products);
@@ -102,8 +101,7 @@ List&lt;Stock&gt; stock = getStockForProducts(products);
 The above code is simple, easy to read, and feels completely natural for a Java developer to write.  For completeness, let's have a look at the same thing in Scala:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-val user = getUserById(id)
+<pre class="prettyprint"><code class="language-scala">val user = getUserById(id)
 val orders = getOrdersForUser(user.email)
 val products = getProductsForOrders(orders)
 val stock = getStockForProducts(products)
@@ -113,8 +111,7 @@ val stock = getStockForProducts(products)
 Now, let's have a look at the same code, but this time assuming we are making asynchronous calls and returning the results in promises.  What does it look like in Java?
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-Promise&lt;User&gt; user = getUserById(id);
+<pre class="prettyprint"><code class="language-java">Promise&lt;User&gt; user = getUserById(id);
 Promise&lt;List&lt;Order&gt;&gt; orders = user.flatMap(new Function&lt;User, List&lt;Order&gt;&gt;() {
   public Promise&lt;List&lt;Order&gt;&gt; apply(User user) {
     return getOrdersForUser(user.email);
@@ -140,8 +137,7 @@ So firstly, the above code is not readable, in fact it's much harder to follow, 
 So let's take a look at the asynchronous solution in Scala:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-for {
+<pre class="prettyprint"><code class="language-scala">for {
   user &lt;- getUserById(id)
   orders &lt;- getOrdersForUser(user.email)
   products &lt;- getProductsForOrders(orders)
@@ -168,7 +164,7 @@ The example I've provided of Scala scaling well where Java doesn't is a very spe
 Using Akka, you can easily define actors for different types of requests, and allocate them different resource limits.  So if certain parts of your single application start struggling or receiving unanticipated load, those parts may stop responding, but the rest of your app can stay healthy.
 </li>
 <li>
-Scala, Play and Akka make handling single requests using multiple threads running in parallel doing different operations incredibly simple, allowing you to have requests that do a lot in very little time.  Klout wrote an <a href="http://corp.klout.com/blog/2012/10/scaling-the-klout-api-with-scala-akka-and-play/">excellent article</a> about how they did just that in their API.
+Scala, Play and Akka make handling single requests using multiple threads running in parallel doing different operations incredibly simple, allowing you to have requests that do a lot in very little time.  Klout wrote an <a href="http://corp.klout.com/blog/2012/10/scaling-the-klout-api-with-scala-akka-and-play/">excellent article<a> about how they did just that in their API.
 </li>
 <li>
 Because asynchronous IO is so simple, offloading processing onto other machines can be safely done without tying up threads on the first machine.
@@ -202,16 +198,14 @@ Now in Java, you can make things immutable.  There are some libraries that help 
 Let's have a look at some code.  Here is an immutable class in Scala:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-case class User(id: Long, name: String, email: String)
+<pre class="prettyprint"><code class="language-scala">case class User(id: Long, name: String, email: String)
 </code></pre>
 
 <p>
 That structure is immutable.  Moreover, it automatically generates accessors for the properties.  Let's look at the corresponding Java:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-public class User {
+<pre class="prettyprint"><code class="language-java">public class User {
   private final long id;
   private final String name;
   private final String email;
@@ -240,16 +234,14 @@ public class User {
 That's an enormous amount of code!  And what if I add a new property?  I have to add a new parameter to my constructor which will break existing code, or I have to define a second constructor.  In Scala I can just do this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-case class User(id: Long, name: String, email: String, company: Option[Company] = None)
+<pre class="prettyprint"><code class="language-scala">case class User(id: Long, name: String, email: String, company: Option[Company] = None)
 </code></pre>
 
 <p>
 All my existing code that calls that constructor will still work.  And what about when this object grows to have 10 items in the constructor, constructing it becomes a nightmare!  A solution to this in Java is to use the builder pattern, which more than doubles the amount of code you have to write for the object.  In Scala, you can name the parameters, so it's easy to see which parameter is which, and they don't have to be in the right order.  But maybe I might want to just modify one property.  This can be done in Scala like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-case class User(id: Long, name: String, email: String, company: Option[Company] = None) {
+<pre class="prettyprint"><code class="language-scala">case class User(id: Long, name: String, email: String, company: Option[Company] = None) {
   def copy(id: Long = id, name: String = name, email: String = email, company: Option[Company] = company) = User(id, name, email, company)
 }
 

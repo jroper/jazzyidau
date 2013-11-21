@@ -1,6 +1,6 @@
 ---
 title: Comments complement code
-date: 2012/11/08 23:37
+date: 2012-11-08T23:37:00.000+11:00
 tags: 
 ---
 <p>
@@ -15,8 +15,7 @@ Good code is its own best documentation. As you’re about to add a comment, ask
 I just want to say, it's a load of rubbish.  Take a look at the following code:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def toCharArray(
+<pre class="prettyprint"><code class="language-scala">def toCharArray(
      decoder: CharsetDecoder = Charset.forName("UTF-8").newDecoder()
   ): Enumeratee[Array[Byte], Array[Char]] = new Enumeratee[Array[Byte],Array[Char]] {
 
@@ -75,8 +74,7 @@ Now maybe you might criticise my code because the +1 is actually a magic number,
 Let me show you the comment that is above that line of code:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-// The +1 here is very important, it is there for the case when there are
+<pre class="prettyprint"><code class="language-scala">// The +1 here is very important, it is there for the case when there are
 // 3 bytes of a 4 byte character in the partialChar array, and so this data
 // should contain the final byte, but that one byte will become 2 Chars.
 val charBuffer = CharBuffer.allocate(data.length + 1)

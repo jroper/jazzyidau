@@ -1,6 +1,6 @@
 ---
 title: 100 Continue support in Play
-date: 2013/07/16 16:34
+date: 2013-07-16T16:34:12.370+10:00
 tags: play scala http
 ---
 <p>
@@ -33,8 +33,7 @@ This can be used whenever the server wants to do validation of just the request 
 So with all this in mind, how can this be implemented in Play framework?  As you may be aware, at the lowest level, a Play action looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-trait EssentialAction extends (RequestHeader =&gt; Iteratee[Array[Byte], Result])
+<pre class="prettyprint"><code class="language-scala">trait EssentialAction extends (RequestHeader =&gt; Iteratee[Array[Byte], Result])
 </code></pre>
 
 <p>
@@ -45,8 +44,7 @@ The iteratee that the essential action function returns is what consumes the bod
 So for an action to take advantage of this, it just needs to ensure that it returns a done iteratee if the validation fails.  Plays built in authentication action does just this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def Authenticated[A](
+<pre class="prettyprint"><code class="language-scala">def Authenticated[A](
   userinfo: RequestHeader =&gt; Option[A],
   onUnauthorized: RequestHeader =&gt; Result)(action: A =&gt; EssentialAction): EssentialAction = {
 
@@ -64,8 +62,7 @@ def Authenticated[A](
 In addition, all of Plays body parsers, when they check the content type, will return a done iteratee if the content type is wrong.  So if I have an action that looks like this:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-def upload = Authenticated(
+<pre class="prettyprint"><code class="language-scala">def upload = Authenticated(
     rh =&gt; rh.headers.get("Authentication-Token").filter(_ == "secret-token"), 
     rh =&gt; Forbidden("Authentication required")
 ) { token =&gt; Action(parse.text) { request =>

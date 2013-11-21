@@ -1,34 +1,29 @@
 ---
 title: JPA 2.0 - New features - Part 1
-date: 2008/03/24 12:16
+date: 2008-03-24T12:16:00.000+11:00
 tags: jpa hibernate toplink java
 ---
 
 In my previous blog post I wrote about asking the JPA presenter at the Sun Tech Days if JPA will support collections of basic types.  I've now done some research of my own and found that most of the features that I miss most in JPA, compared to Hibernate, will be in JPA.<p class="paragraph"/>Let me start by saying that the first version of the Java Persistence API is excellent.  Standardising three major competing vendors of ORM technologies, Hibernate, JDO and Toplink, into one standard would have been by no means an easy task.  It certainly would have been an easy way out for the expert group to produce an API that included only the features they could agree on, but did not include many of the fundamental features of an ORM framework.  I feel however that all the core aspects of ORM concepts have been addressed, the things that were left out were not essential.  This is where JPA 2.0 comes in.  Now that JPA has gained industry acceptance, it is time to fill the standard out, include all those nice to have features and clean it up around the edges.<p class="paragraph"/>The JPA 2.0 specification has yet to be proposed as a JSR, so nothing that I'm about to mention is definitely going to be in there.  All of the information I'm providing is based on presentations that I've read given by the people who will be involved in specifying JPA 2.0.
 <h3 class="heading-1-1">Collections of basic and embedded types</h3><p class="paragraph"/>This is the feature that I most miss whenever I use JPA.  I can understand why it may not have been seen as essential to be included in JPA initially, collections of basic types is not strictly an object oriented concept, because basic types are not objects.  Nevertheless, in practice it is data structure frequently used both in relational databases and in object oriented models.<p class="paragraph"/>An example might be tags in a blog.  A tag would not be considered an object, it is simply a keyword used to index blog entries.  The same tag may be applied to multiple blog entries, but if it were removed from all of these blog entries, it would no longer exist in any form.  The concept of a tag is therefore not an object, and hence it would not make sense to map tags as entities in themselves.  Rather, each blog entry would have a set of Strings.  Using hibernate extensions, this is currently how it's done:<p class="paragraph"/>
-<pre class="prettyprint"><code class="language-java">
-@CollectionOfElements
+<pre class="prettyprint"><code class="language-java">@CollectionOfElements
 private Set<String> tags;
 </code></pre>
 <p class="paragraph"/>This can similarly be mapped in TopLink using @BasicCollection.
 <h3 class="heading-1-1">Unidirectional one to many</h3><p class="paragraph"/>A feature that follows on from collections of basic types, and would also be very helpful in collections of entities, is unidirectional one to many associations.  JPA currently only supports one to many associations as the inverse end of a many to one association, so the owning side of the association is the many side, and never the one side.  What this means, is if you have a BlogEntry entity, and it has a list of Comment entities, you can't add or remove comments from the blog by operating on the comment list, you have to do it by setting or nullifying the blog property on each comment.<p class="paragraph"/>For example, the following code can't be used to add or remove comments from the blog entry:<p class="paragraph"/>
-<pre class="prettyprint"><code class="language-java">
-blogEntry.getComments().add(comment1);
+<pre class="prettyprint"><code class="language-java">blogEntry.getComments().add(comment1);
 blogEntry.getComments().remove(comment2);
 </code></pre>
 <p class="paragraph"/>Rather, it has to be done as follows:<p class="paragraph"/>
-<pre class="prettyprint"><code class="language-java">
-comment1.setBlogEntry(blogEntry);
+<pre class="prettyprint"><code class="language-java">comment1.setBlogEntry(blogEntry);
 comment2.setBlogEntry(null);
 </code></pre>
 <p class="paragraph"/>This is definitely the easier feature to map to databases, as relationships in a database are always owned by the many table.  The many table will have a column, say blog_entry_id, that is a foreign key to the primary key of the blog_entry table.  However, this is not how we like to view things in an object oriented world.  A blog entry is composed of, among other things, comments.  Without a blog entry instance, a comment instance does not conceptually exist, nor does it make sense to ever use the comment outside of the context of using the blog entry.  In this situation, the sensible mapping is to have the blog entry as the owning side, with no reference from the comment to the blog entry.  Comments then only ever get accessed through accessing the entry first, and get created and removed from the blog entry via operating on the comment list.<p class="paragraph"/>A related question I have that is not clear from my research is whether JPA 2.0 will support Hibernate's delete orphan cascade type, or TopLink's private ownership feature, or something different.  Both achieve the same goal but through quite different methods.
 <h3 class="heading-1-1">Indexed lists</h3><p class="paragraph"/>A further feature that follows on from the above two is indexed lists.  Seeing as JPA can only support the many side being the owner of an association, the many side also has to be where order is lists is managed.  This means adding a property to our Comment entity, we'll call it index.  If it's a bidirectional relationship, the order of the returned list can be set by specifying index as the property to order the comments by.  Now, if I wanted to move the fifth comment to the top of the comment list, if the one side was the owning side, it would be as simple as:<p class="paragraph"/>
-<pre class="prettyprint"><code class="language-java">
-comments.add(0, comments.remove(4));
+<pre class="prettyprint"><code class="language-java">comments.add(0, comments.remove(4));
 </code></pre>
 <p class="paragraph"/>However, because the owning side is the many side, it has to be done like this:<p class="paragraph"/>
-<pre class="prettyprint"><code class="language-java">
-for (int i = 0; i < 4; i++)
+<pre class="prettyprint"><code class="language-java">for (int i = 0; i < 4; i++)
 {
     comments.get(i).setIndex(i + 1);
 }

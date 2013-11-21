@@ -1,6 +1,6 @@
 ---
 title: Benchmarking Scala against Java
-date: 2012/10/16 17:40
+date: 2012-10-16T17:40:34.909+11:00
 tags: scala java
 ---
 <p>
@@ -13,8 +13,7 @@ A question recently came up at work about benchmarks between Java and Scala.  Ma
 Today we are going to choose a very simple algorithm to benchmark, the quick sort algorithm.  I will provide implementations both in Scala and Java.  Then with each I will sort a list of 100000 elements 100 times, and see how long each implementations takes to sort it.  So let's start off with Java:
 </p>
 
-<pre class="prettyprint"><code class="language-java">
-    public static void quickSort(int[] array, int left, int right) {
+<pre class="prettyprint"><code class="language-java">    public static void quickSort(int[] array, int left, int right) {
         if (right &lt;= left) {
             return;
         }
@@ -43,8 +42,7 @@ Today we are going to choose a very simple algorithm to benchmark, the quick sor
 Timing this, sorting a list of 100000 elements 100 times on my 2012 MacBook Pro with Retina Display, it takes 852ms.  Now the Scala implementation:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-  def sortArray(array: Array[Int], left: Int, right: Int) {
+<pre class="prettyprint"><code class="language-scala">  def sortArray(array: Array[Int], left: Int, right: Int) {
     if (right &lt;= left) {
       return
     }
@@ -93,8 +91,7 @@ This brings me to my next point, apart from a couple of extra niche optimisation
 But this still isn't the full picture.  My implementation of quick sort in Scala was not what we'd call idiomatic Scala code.  It's implemented in an imperative fashion, very performance focussed - which it should be, being code that is used for a performance benchmark.  But it's not written in a style that a Scala developer would write day to day.  Here is an implementation of quick sort that is in that idiomatic Scala style:
 </p>
 
-<pre class="prettyprint"><code class="language-scala">
-  def sortList(list: List[Int]): List[Int] = list match {
+<pre class="prettyprint"><code class="language-scala">  def sortList(list: List[Int]): List[Int] = list match {
     case Nil =&gt; Nil
     case head :: tail =&gt; sortList(tail.filter(_ &lt; head)) ::: head :: sortList(tail.filter(_ &gt;= head))
   }
