@@ -1,0 +1,6 @@
+
+
+GET        /default/*path        controllers.LegacyPaths.redirect(path)
+GET        /blog/*path           controllers.LegacyPaths.redirect(path)
+
+->         /                     au.id.jazzy.erqx.engine.controllers.BlogsRouter
