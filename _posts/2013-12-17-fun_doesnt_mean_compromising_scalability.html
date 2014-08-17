@@ -1,0 +1,48 @@
+---
+title: "Fun doesn't mean compromising scalability"
+date: 2013-12-17T10:33:01.190+11:00
+tags: meteor akka play
+---
+<p>
+Today I read an interesting piece on InfoWorld about Meteor, <a href="http://www.infoworld.com/t/javascript/meteor-aims-make-javascript-programming-fun-again-232659">Meteor aims to make JavaScript programming fun again</a>.  It is an interview with Matt DeBergalis, a co-author of Meteor, about Meteor and why a developer would choose it.  The title in particular resonated well with me, "making programming fun again" is a catch phrase I have often used in presentations I've given about Play Framework.
+</p>
+
+<p>
+As the demands on the applications we write shifts, the technologies we use start to make it harder to meet them, and pretty soon we feel like we are always working against the technologies that are supposed to be helping us.  By taking a step back, rethinking the technologies, and creating new ones that are better suited to todays demands, we can continue being productive writing modern applications, and its then that development becomes fun again.  Though obviously not always the case, how much fun you have working with a particular technology is often well correlated to how well suited it is for solving the problems you are trying to solve, and so there is some merit to switching to technologies that are more fun.
+</p>
+
+<p>
+In this light, Meteor is not a bad framework, it is particularly very interesting in its approach to solving the problems of making web applications responsive to data updates.  Writing apps in it will definitely, at least initially, be very fun.  But my reason for writing this post is that I had one main gripe with the article.  The problem was that DeBergalis continually likened what Meteor achieves with Facebook, implying that Facebook could be implemented using Meteor.  This couldn't be further from the truth.
+</p>
+
+<p>
+While the end result of an application written in Meteor and Facebook are very similar - they are both applications that update instantly as people interact with them - the approach that Facebook takes to writing their apps is the complete opposite from Meteor.  Meteor places a massive emphasis on "don't worry about how data is communicated, let the framework deal with that for you".  Although I have not worked on Facebook myself, I am sure that their approach is all about how the data is communicated - they don't just let the framework deal with that for them.
+</p>
+
+<p>
+The problem with Meteor's approach to web development is that it makes the same mistakes that some very old technologies that many people now loath made.  I am going to highlight two such technologies.
+</p>
+
+<p>
+The first is relational databases.  The promise of relational databases was that you don't have to worry about how your data was accessed - just make sure you store it in a normalised form, and let the database handle whatever load you throw at it.  Performance can be achieved by tuning with indexes.  But the problem that we found on the web is that that approach did not scale.  Denormalisation and caching became necessary in any app with even a modest load.  And that's when NoSQL databases started popping up.  NoSQL databases intentionally limited what you could do in them - forcing you to take a different perspective on your data, namely how is it going to be read/written?  They forced you to make decisions that would allow you to scale early in the design process, and we found that making these decisions early were key to successfully scaling a web application.
+</p>
+
+<p>
+The second technology is n-tier application servers.  The promise of application servers was that you didn't have to worry about deployment, you just wrote your applications, and let the application server worry about scalability and resilience.  This led to people writing massive monolithic apps, where almost every function in the app depended on every single other function, killing any chance of ever having either resilience or scalability.  When performance became an issue, clustering was "turned on", and often performance went down.  And that's when containerless micro service solutions started becoming popular - small services that could be individually scaled.  These new architectures forced you to think about scalability up front, making those decisions early.
+</p>
+
+<p>
+Are you seeing a pattern here?  Letting the technology handle resilience and scaling for you is bad, forcing you to address it up front is good.  But Meteor seems to be making the exact same mistakes the relational databases and n-tier application servers made.  It's trying to hide those concerns from you, in the name of "making programming fun again".  While fun at first, this is certainly not going to be fun when your site gets popular and starts falling over because of the load it gets.
+</p>
+
+<p>
+But maybe the Meteor developers have come up with a smart way to scale it.  There are apparently two ways you can run multiple Meteor nodes, and the apparently better one is described <a href="http://meteorhacks.com/lets-scale-meteor.html">here</a>.  The approach?  Have each Meteor node tail the MongoDB Oplog.  Or in simple English, make every write operation in the system go to every node in the cluster.  I'll let you decide whether you think making that approach scale is fun.
+</p>
+
+<p>
+As I said at the start I resonated well with the title of the article - but it seems that I have a very different idea of what's fun to what the authors of Meteor have.  In my opinion, hiding the details of hard problems to scale is not fun.  Rather, putting them in your face, giving you the tools to solve them at the right time, now that's fun.  This is exactly what Play Framework and Akka do - particularly Akka, in which the assumption when you program is that every other part of the app is likely down or not responding, and you are forced to deal with what happens when that's the case.  Using these technologies to solve these hard problems is not only fun, it's very satisfying - seeing an app with 50000 concurrent users broadcasting updates every second scale with only 10 nodes, it's exciting too!
+</p>
+
+<p>
+The fun approach to hard problems is not to run away from them to something that pretends they don't exist.  It's to embrace them head on, using technologies that are designed to help you do so.
+</p>
