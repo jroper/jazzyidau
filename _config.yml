@@ -4,6 +4,8 @@ author: James and Beth Roper
 
 disqus_shortname: ropedin
 
+theme: themes.Theme$
+
 description: |
   <div style="text-align: center; margin: 10px 0;"><img src="images/jamesbeth.jpg"/></div>
   <p>
