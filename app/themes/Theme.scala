@@ -1,6 +1,9 @@
 package themes
 
+import play.api.mvc.RequestHeader
+import play.twirl.api.Html
 import au.id.jazzy.erqx.engine.models._
+import au.id.jazzy.erqx.engine.controllers._
 import org.apache.commons.codec.binary.Hex
 
 object Theme extends BlogTheme {
@@ -13,4 +16,7 @@ object Theme extends BlogTheme {
     }
     Hex.encodeHexString(hashBytes)
   }
+  
+  override def head(blog: Blog, router: BlogReverseRouter, title: Option[String])(implicit req: RequestHeader): Html =
+    views.html.head(blog, router, title)
 }
