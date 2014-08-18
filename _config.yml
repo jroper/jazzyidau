@@ -2,6 +2,8 @@ title: all that jazz
 subTitle: "james' blog about scala and all that jazz"
 author: James Roper
 
+theme: themes.Theme
+
 disqus_shortname: jazzyidau
 
 description: |
