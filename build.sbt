@@ -16,3 +16,19 @@ scalaVersion := "2.11.2"
 pipelineStages := Seq(gzip, digest)
 
 excludeFilter in digest := "*.map" || "*.gz"
+
+sourceGenerators in Compile <+= sourceManaged in Compile map { dir =>
+  val hash = ("git rev-parse HEAD" !!).trim
+  val file = dir / "themes" / "Build.scala"
+  if (!file.exists || !IO.read(file).contains(hash)) {
+    IO.write(file,
+      """ |package themes
+          |
+          |object Build {
+          |  val hash = "%s"
+          |}
+        """.stripMargin.format(hash))
+  }
+  Seq(file)
+}
+
