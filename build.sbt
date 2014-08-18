@@ -5,6 +5,14 @@ organization := "au.id.jazzy.wwww"
 
 version := "1.0.0-SNAPSHOT"
 
-playScalaSettings
+lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-libraryDependencies += "au.id.jazzy.erqx" %% "erqx-engine" % "1.0.0-SNAPSHOT"
+resolvers += "jroper.github.io releases" at "https://jroper.github.io/releases"
+
+libraryDependencies += "au.id.jazzy.erqx" %% "erqx-engine" % "1.0.0-RC1"
+
+scalaVersion := "2.11.2"
+
+pipelineStages := Seq(gzip, digest)
+
+excludeFilter in digest := "*.map" || "*.gz"
