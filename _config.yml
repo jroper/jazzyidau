@@ -20,6 +20,4 @@ description: |
   <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
 
 footer: |
-  <a rel="license" href="http://creativecommons.org/licenses/by-nc/2.5/au/"><img alt="Creative Commons Licence" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/2.5/au/88x15.png" /></a>
-  <br />
-  Copyright James Roper.  This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/2.5/au/">Creative Commons Attribution-NonCommercial 2.5 Australia License</a>
+  Copyright James Roper.  <a rel="license" href="http://creativecommons.org/licenses/by-nc/2.5/au/">Some rights reserved</a>.
