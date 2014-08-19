@@ -24,11 +24,9 @@ Not convinced?  Here is everything you need to do to include a blog in your exis
 
 1. Add a dependency to your `build.sbt` file:
 
-    ```scala
-    resolvers += "ERQX Releases" at "https://jroper.github.io/releases"
-    
-    libraryDependencies += "au.id.jazzy.erqx" %% "erqx-engine" % "1.0.0"
-    ```
+        resolvers += "ERQX Releases" at "https://jroper.github.io/releases"
+        
+        libraryDependencies += "au.id.jazzy.erqx" %% "erqx-engine" % "1.0.0"
 
 2. Add the blog router to your `routes` file:
 
