@@ -9,7 +9,10 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 resolvers += "jroper.github.io releases" at "https://jroper.github.io/releases"
 
-libraryDependencies += "au.id.jazzy.erqx" %% "erqx-engine" % "1.0.0"
+libraryDependencies ++= Seq(
+  filters,
+  "au.id.jazzy.erqx" %% "erqx-engine" % "1.0.0"
+)
 
 scalaVersion := "2.11.2"
 
