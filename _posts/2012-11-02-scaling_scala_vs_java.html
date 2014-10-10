@@ -164,7 +164,7 @@ The example I've provided of Scala scaling well where Java doesn't is a very spe
 Using Akka, you can easily define actors for different types of requests, and allocate them different resource limits.  So if certain parts of your single application start struggling or receiving unanticipated load, those parts may stop responding, but the rest of your app can stay healthy.
 </li>
 <li>
-Scala, Play and Akka make handling single requests using multiple threads running in parallel doing different operations incredibly simple, allowing you to have requests that do a lot in very little time.  Klout wrote an <a href="http://corp.klout.com/blog/2012/10/scaling-the-klout-api-with-scala-akka-and-play/">excellent article<a> about how they did just that in their API.
+Scala, Play and Akka make handling single requests using multiple threads running in parallel doing different operations incredibly simple, allowing you to have requests that do a lot in very little time.  Klout wrote an <a href="http://corp.klout.com/blog/2012/10/scaling-the-klout-api-with-scala-akka-and-play/">excellent article</a> about how they did just that in their API.
 </li>
 <li>
 Because asynchronous IO is so simple, offloading processing onto other machines can be safely done without tying up threads on the first machine.
