@@ -1,0 +1,34 @@
+---
+title: "OSS diversity - A thought experiment"
+tags: open+source
+---
+
+On the topic of diversity in open source software, I have a thought experiment - what if an open source project was structured more like a company?  This is only a thought experiment, I'm definitely not advocating that we structure open source projects like companies, but I am looking for ways that we can improve diversity in OSS, and this is a big problem that many are struggling to find answers to.
+
+The big difference between a company structure and an open source project structure is that in a company, there are many different roles, and each role has a number of responsibilities specific to that role.  People are hired based on their competency to fulfill the responsbilities required by those roles.  In contrast, an open source project tends to have only one role - the committer, and then all the responsibilities of the project are organically fulfilled by the various people who are in that role according to need and interest.  When people are selected for the committer role, they are selected on broadly the same criteria, which is based on their technical contributions to the project.
+
+Does this difference have any impact on diversity?  Of course there is some impact, since each person in the committer role must have a passion for technical contribution to the project, whereas in a company structure, there will be some people with a passion for technical work in the technical roles, and other people with passion for communication in the marketing roles.  But this is a lack of vocational diversity.  The issue that we're concerned about in the OSS world is not a lacke of vocational diversity, it's a lack of diversity of gender, age, race, sexual orientation, among other things.  For lack of a better word, I'll call this type of diversity "identity" diversity, as opposed to "vocational" diversity.  At face value, if the pool of people that are passionate about technical contribution are diverse in identity, then there likewise should be identity diversity among committers in open source projects.
+
+In practice we see things are not like this in open source projects.  In contrast, and in my experience, big companies with a broad range of very specialised vocational roles tend to be very identity diverse - at very least outside of executive management.  Also in my experience this identity diversity exists within vocational roles, it's not just that each vocational role is filled with people of one type diversity that in aggregate makes the whole company identity diverse.
+
+So could it be that a lack of diversity of roles - which are vocational based - fuels a lack in identity diversity in people that fill these roles?  At this stage I haven't done enough research to be able to answer this question, but perhaps it's something that we could start experimenting with in open source projects.
+
+## Putting it into practice
+
+So if we were to try to introduce diverse vocational roles into open source projects, what roles would they be, and what would they look like?  To make things a little more concrete, let's start by thinking about the introduction of a marketing role.  Every large open source project does a lot of marketing, from publishing blog posts to tweeting to organising conference engagements to engaging with the community on mailing lists.  This is something that it would be quite straight forward to create a role for.  This wouldn't mean that everyone else in the project stops blogging/tweeting etc, that doesn't happen in a company.  It does mean that someone is given the responsibility of coordinating and ensuring that marketing happens.
+
+In order for such a role to work, it needs to be well defined - open source projects are not used to having such roles, so it needs to be made clear to everyone on the project, not just the person in this role, what the responsibilities of the role are.  This is necessary to empower that person to be and feel effective in the project.  The responsibilities are going to vary from project to project, but in the context of my project, Play Framework, and without having put too much thought into it yet, this is what I'd envision:
+
+* Be the public face of the project, the first point of contact for people that want to engage the Play community.
+* Manage the Twitter account, including keeping an eye out for tweets to retweet and responding to mentions where necessary.
+* Keep an eye out for community related questions on the mailing list, and respond or coordinate responses to those emails.
+* Keep a look out for conferences that Play contributors, both in the core team and the broader ecoystem, could speak at, and link the appropriate people up with appropriate conferences.
+* Write or coordinate project announcements, such as new releases, security vulnerabilities, etc.
+* Seek ways to make Play a more attractive project to contribute to, through talking to people about their contribution experiences, and improving or coordinating improvements to documentation and the processes in place for receiving contributions.
+* Seek ways to make Play an easier framework to get started with, through talking to people about their usage experiences, and improving or coordinating improvements to documentation and other resources.
+
+Having defined the role, the next step is probably the hardest - finding someone to fill it.  Finding people to fill a committer role of an open source project is generally easy, many developers that love using the software would also love to be a committer on it.  Finding someone with skills and a passion for marketing who is willing to volunteer their time towards an open source project I would imagine would be a lot harder.  This is possibly where my whole thought experiment falls down.
+
+For Play though it's not too hard to solve - Play is a project that is driven by a company, and we already have a marketing team that does a lot of behind the scenes work in engaging the Play community.  For us, we could make our marketing staff more public facing in the Play community, getting them to take on the responsibilities listed above (some of them they already do), and publicly acknowledging them as a member of the Play community, not just a member of the Typesafe marketing team, on the Play website.  This may be a good start.
+
+This is just one role that we could look at introducing to open source projects.  There are many other possible roles, including leadership roles (in most companies these are not filled by technical people), product management, and a variety of HR roles.  I'm not sure how well (if at all) these will work in an open source project, but in order to improve diversity, OSS projects are in need of big changes, and whatever changes are found to work will probably appear unworkable at first.  So I think these are worth trying.
