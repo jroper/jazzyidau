@@ -31,7 +31,9 @@ And then, when you actually don't want to run it, you can do that by evaluating 
 
 @[runnoopprimes](/_code/noop-monad/NoopMonad.scala)
 
-So, we can see that `Noop` is a `Point`, but can we `flatMap` it?  What if you don't want to sum all those prime numbers, and then you certainly don't want to convert that result to a `String`?  The noop monad lets you do that:
+For those unfamiliar with scalaz and functional programming, a monad is an applicative, and an applicative is something that lets you create an instance of the applicative from a value.  The method on `Applicative` for doing this is called `point`, in other languages it's also called `pure`.
+
+So, we can see that `Noop` is an applicative, but can we `flatMap` it?  What if you don't want to sum all those prime numbers, and then you certainly don't want to convert that result to a `String`?  The noop monad lets you do that:
 
 @[summed](/_code/noop-monad/NoopMonad.scala)
 
