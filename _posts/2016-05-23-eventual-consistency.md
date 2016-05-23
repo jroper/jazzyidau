@@ -1,0 +1,30 @@
+---
+title: "Eventual Consistency is not safe and that's ok"
+tags: eventual+consistency
+---
+
+A number of years ago, [Peter Bailis](http://www.bailis.org/) wrote an excellent post titled [Safety and Liveness: Eventual Consistency Is Not Safe](http://www.bailis.org/blog/safety-and-liveness-eventual-consistency-is-not-safe/). This post is short and to the point, and is a very salient reality check for anyone that is using eventual consistency. With the prevelance of eventually consistent architectures and systems today, I recommend that all developers read it, in spite of the posts age, it is just as important today as it was when it was written.
+
+A member of our marketing department recently came across the post, and sent an email to our engineers because he was somewhat confused about it.  At Lightbend, we are advocates of eventual consistency, and much of our tech embraces it.  However he was alarmed by the statement that eventual consistency is not safe.  This statement led him to the conclusion that the post was saying that eventual consistency must be bad.
+
+I don't think this conclusion is an unreasonable conclusion for someone not familiar with eventual consistency to make, not just a marketing person, but for a developer who is completely new to eventual consistency.  And so I think the statement needs some further explanation.
+
+So to start with, an analogy.  The sun is unsafe.  If you were to somehow "stand on" the sun, before you could begin to comprehend your environment, you would cease to exist in any recognisable form.  This property of the sun, that standing on it and existing are incompatible, is not a bad thing, in fact it's not a good thing either, it's neither bad nor good, it's just a property.  It doesn't become a good or bad thing until you try to rely on the property or its absence.  It simply means, don't stand on the sun.
+
+Likewise, the unsafeness of eventual consistency is not a bad thing, nor is it a good thing, it's just a property.
+
+Now the bulk of Peter's post was about how eventual consistency alone is not useful, it must be combined with other guarantees, such as what versions of the data can be returned when it's not consistent, and what version of the data will eventually be returned.  These guarantees help to make an eventually consistent system more safe, but they don't stop it from being unsafe.
+
+So what does this unsafety look like in practice, and why isn't it necessarily a bad thing?
+
+Let's consider a very common eventually consistent architectural practice - [Command Query Responsibility Segregation (CQRS)](http://martinfowler.com/bliki/CQRS.html).  A CQRS implementation is usually eventually consistent, and offers further guarantees such as that the read side will always return some version of the data that matches some version in the write sides history, and that the convergent version that will eventually be returned will always be the most recent version of the write side.
+
+So, what is not safe about it?  Let's say you have a blog that supports full text search.  The search is implemented using a read side view of the data that puts all the posts into a natural text index.  Since this is using CQRS, the index is updated asynchronously, and it may take some time for the new post to reach the read side.  This means, immediately after publishing a new post, let's say it's a post about eventual consistency, if you search for "eventual consistency", the post won't come back in the search results.  This is in spite of the fact that you can browse to the post, load it, and see the words eventual consistency in the text of the post.  The system is in an inconsistent state, when we load the post it has the words "eventual consistency", when we ask the search index for all the posts with the words "eventual consistency" in them, the index doesn't return that post.  This is the unsafety, it is not safe to rely on every part of the system returning the same answer to whether our post contains the words "eventual consistency".
+
+So, now we've seen an example of the unsafety of eventual consistency, why is this not bad?  The answer is simply, there is no requirement for the text search to be updated immediately after the blog post is published.  There is a requirement that it be eventually updated, and in a somewhat timely manner, and CQRS allows us to meet that requirement.  But no one cares if for a few seconds or even minutes after publishing a blog post, that the text search on their blog doesn't return the new post.  So the unsafety of eventual consistency is not bad because we're not relying on it to be safe.
+
+How does this play out in a broader context?  It's easy to see how safety is not a requirement for a search index, but that's a very specific scenario.  If you're writing a sufficiently large system, with even modest scaling and availability requirements by todays standards, you will probably find yourself having to use eventual consistency.  This means you must embrace the unsafeness property of it, you must design your system to handle it.
+
+There are many ways to do this - for example, if you using asynchronous message passing, then the messages can be handled when the system is ready to handle them, in contrast to synchronous RPC calls, which require the system to be consistent before they can be made.  Another technique is to just store events, or facts, things that happened, and don't calculate the state until later, when the system has converged, for example, when the state is queried.  And yet another is to assume consistency, but then have a process in place to detect when that assumption was not true, and trigger some recovery operation.
+
+In all these cases, the unsafeness of eventual consistency isn't a bad thing, it's just a property that has been carefully considered and addressed in the design of the system.  The unsafeness of eventual consistency only becomes a bad thing if your system relies on it being safe.
