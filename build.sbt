@@ -1,25 +1,19 @@
-
 name := "website"
-
 organization := "au.id.jazzy.wwww"
-
 version := "1.0.0-SNAPSHOT"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-resolvers += "jroper.github.io releases" at "https://jroper.github.io/releases"
+resolvers += Resolver.bintrayRepo("jroper", "maven")
 
 libraryDependencies ++= Seq(
   filters,
-  "au.id.jazzy.erqx" %% "erqx-engine" % "2.0.0-SNAPSHOT"
+  "au.id.jazzy.erqx" %% "erqx-engine" % "2.0.0"
 )
 
-scalaVersion := "2.11.5"
-
-routesGenerator := InjectedRoutesGenerator
+scalaVersion := "2.11.8"
 
 pipelineStages := Seq(gzip, digest)
-
 excludeFilter in digest := "*.map" || "*.gz"
 
 sourceGenerators in Compile <+= sourceManaged in Compile map { dir =>

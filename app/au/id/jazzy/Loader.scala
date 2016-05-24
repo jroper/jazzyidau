@@ -13,9 +13,9 @@ import router.Routes
 
 class Loader extends ApplicationLoader {
   def load(context: Context) = {
-    new BuiltInComponentsFromContext(context) with AkkaComponents with I18nComponents {
+    new BuiltInComponentsFromContext(context) with I18nComponents {
 
-      lazy val blogs = new Blogs(configuration, actorSystem)
+      lazy val blogs = new Blogs(environment, configuration, actorSystem)
       lazy val blogsRouter = new BlogsRouter(messagesApi, blogs)
 
       lazy val router = new Routes(httpErrorHandler, new LegacyPaths, blogsRouter)
