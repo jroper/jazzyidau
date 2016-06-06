@@ -7,7 +7,7 @@ I've been thinking a bit about open source software, and why I'm so attracted to
 
 But when I think about what attracts me to open source software, like free as in beer, free as in speech is only an advantage, a nice to have, it's not the primary attraction.
 
-So firstly, why isn't free as in beer the primary attraction to me?  The answer is is it's about risk.  Dijkstra famously stated that we should count lines of code as "lines spent" rather than "lines produced".  Every line of code in your system is a line of code that you must understand and maintain for the life of that system.  The more lines of code, the more complexity, the harder the system is to understand, the more expensive it is to maintain.
+So firstly, why isn't free as in beer the primary attraction to me?  The answer is it's about risk.  Dijkstra famously stated that we should count lines of code as "lines spent" rather than "lines produced".  Every line of code in your system is a line of code that you must understand and maintain for the life of that system.  The more lines of code, the more complexity, the harder the system is to understand, the more expensive it is to maintain.
 
 This doesn't just apply to the code that you write - it applies to the third party libraries that you're using.  Every library that you use is another layer of code, another part of the system that you have to maintain, and so counts towards the number of lines spent.  It may be a commercial library, that you're paying someone else to maintain - but it's still your responsibility to ensure that it is maintained, but it's your system that the library is running in.  In the case of a commercial library, you are only delegating that responibility, not transferring it.
 
