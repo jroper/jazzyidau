@@ -13,7 +13,7 @@ This subtle difference can change the way we think about the messages that conve
 
 The property of our system that is in question here is consistency.  If we treat all events as facts, containing only indisputable information, then we improve the consistency of our system.  A service can't make the mistake of trusting information in an event that might later become false, since the event won't contain that information.  And this consistency issue is, in general, a bigger issue than the throughput of your message broker.  There are many things that can be tuned to increase throughput, but addressing inconsistency requires a lot more than just tuning.
 
-And so I've realised that the biggest concerns when deciding how much information to include in events are resiliency and consistency.  To include more information beyond the fact that happened is to increase resiliency at the cost of consistency.
+And so I've realised that the biggest concerns when deciding how much information to include in events are resilience and consistency.  To include more information beyond the fact that happened is to increase resilience at the cost of consistency.
 
 Of course, it is a trade-off, and one that only the business requirements can decide where the appropriate balance lies.  If I have an email notification service that is subscribing to order events, and it needs the list of order items in order to render an email notification, it is fine for it to simply read the items from the event to generate the email to send.
 
