@@ -25,7 +25,7 @@ Let's imagine service B needs some data owned by service A to implement its resp
 
 Service A could do this synchronously, when an operation is done on service A, it will make a call on service B to update it with the results. Now this works fine on paper, but what happens when service B is down at that time? Does service A have to keep retrying until service B comes back up? What if service A then goes down?
 
-As you can see we now have a consistency problem, one that will not eventually become consistent. Service A has been updated, but service B failed to update. It will stay inconsistent forever, we could say that it is terminally inconsistent, and will require manual intervention in order to fix. The reason we have this problem is that we combined our command responsibility and query responsibilities in the one operation.
+As you can see we now have a consistency problem, one that will not eventually become consistent. Service A has been updated, but service B failed to update. It will stay inconsistent forever, we could say that it is terminally inconsistent, and will require manual intervention in order to fix. The reason we have this problem is that we combined our command responsibility and query responsibilities in the one operation, and since that operation wasn't atomic, a partial failure of the operation will lead to terminal inconsistency.
 
 ## CQRS gives you consistency back
 
