@@ -7,7 +7,7 @@ tags: cqrs
 
 I hear this argument a lot. As the author of a [framework that strongly encourages CQRS](http://www.lagomframework.com), I obviously am biased against this opinion, and disgaree with it.
 
-Of course, the statement and my disagreement needs context and qualification. If you have a traditional monolithic system, where all data operations are done on a single database, and that single database supports ACID transactions, then yes, switching to CQRS will decrease consistency. However, that's not the context in which CQRS usually comes up, and it's not the context that I recommend using it. The context is microservices, and more and more industry experts are recommending that people move away from monoliths and move to microservices.
+Of course, the statement and my disagreement needs context and qualification. If you have a traditional monolithic system, where all data operations are done on a single database, and that single database supports ACID transactions, then yes, switching to CQRS will decrease consistency. However, that's not the context in which CQRS usually comes up, and it's not the context that I recommend using it in. The context is microservices, and more and more industry experts are recommending that people move away from monoliths and move to microservices.
 
 ## Microservices decrease consistency
 
@@ -19,7 +19,7 @@ So, a switch to microservices is by nature a switch to decreased consistency. De
 
 ## Inconsistency can be very bad
 
-Because we are using microservices, our system is inconsistent, and we need to deal with that. How inconsistent our system can get depends on how we deal with it. The typical, very high level hand wavy approach to consistency is to use eventual consistency. But how is that actually achieved?
+Because we are using microservices, our system can become inconsistent, and we need to deal with that. How inconsistent our system can get depends on how we deal with it. The typical, very high level hand wavy approach to dealing with inconsistency in a distributed system is to use eventual consistency. But how is that actually achieved?
 
 Let's imagine service B needs some data owned by service A to implement its responsibility. In this scenario, A is responsible for writing the data, it's the thing that handles the command, while B is responsible for reading the data, it does the query. In order for B to act autonomously though, it can't query A directly, it needs to have A push it the data so that it can update its own query store, and then when the time comes to use it, query it locally.
 
@@ -31,7 +31,7 @@ As you can see we now have a consistency problem, one that will not eventually b
 
 CQRS means separating command responsibilities from query responsibilities. In our scenario, using CQRS, service A handles the command, and updates its state, and is done. Then, in a separate operation, another process will take the result of the operation on A, and asynchronously push it to service B.
 
-Since the operation is asynchronous, service B doesn't need to up at the time - for example it can use an at least once messaging queue to handle the message. If service B isn't up at the time, then the system will be inconsistent for a period of time. However, when service B comes back up, and then processes the message, the service will become consistent again, it will be eventually consistent.
+Since the operation is asynchronous, service B doesn't need to be up at the time - for example it can use an at least once messaging queue to handle the message. If service B isn't up at the time, then the system will be inconsistent for a period of time. However, when service B comes back up, and then processes the message, the system will become consistent again, it will be eventually consistent.
 
 So by employing CQRS, we are able to get back some of the consistency guarantees that we lost when we moved to microservices. We don't have a globally consistent system, but we can guarantee an eventually consistent system.
 
