@@ -9,7 +9,7 @@ resolvers += Resolver.bintrayRepo("jroper", "maven")
 
 libraryDependencies ++= Seq(
   filters,
-  "au.id.jazzy.erqx" %% "erqx-engine" % "2.1.1"
+  "au.id.jazzy.erqx" %% "erqx-engine" % "2.1.2"
 )
 
 scalaVersion := "2.12.2"
@@ -17,7 +17,8 @@ scalaVersion := "2.12.2"
 pipelineStages := Seq(gzip, digest)
 excludeFilter in digest := "*.map" || "*.gz"
 
-sourceGenerators in Compile <+= sourceManaged in Compile map { dir =>
+sourceGenerators in Compile += Def.task {
+  val dir = (sourceManaged in Compile).value
   val hash = "git rev-parse HEAD".!!.trim
   val file = dir / "themes" / "Build.scala"
   if (!file.exists || !IO.read(file).contains(hash)) {
@@ -30,5 +31,5 @@ sourceGenerators in Compile <+= sourceManaged in Compile map { dir =>
         """.stripMargin.format(hash))
   }
   Seq(file)
-}
+}.taskValue
 
