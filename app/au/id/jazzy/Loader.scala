@@ -3,7 +3,7 @@ package au.id.jazzy
 import au.id.jazzy.erqx.engine.{BlogComponents, ErqxBuild}
 import controllers.{AssetsComponents, LegacyPaths}
 import play.api.i18n.I18nComponents
-import play.api.{ApplicationLoader, BuiltInComponentsFromContext}
+import play.api.{ApplicationLoader, BuiltInComponentsFromContext, LoggerConfigurator}
 import play.api.ApplicationLoader.Context
 import play.api.mvc.{EssentialAction, EssentialFilter}
 import play.core.PlayVersion
@@ -14,6 +14,9 @@ import scala.concurrent.ExecutionContext
 
 class Loader extends ApplicationLoader {
   def load(context: Context) = {
+
+    LoggerConfigurator(context.environment.classLoader).foreach(_.configure(context.environment))
+
     new BuiltInComponentsFromContext(context)
       with I18nComponents
       with BlogComponents
@@ -23,7 +26,7 @@ class Loader extends ApplicationLoader {
       lazy val legacyPaths = new LegacyPaths(controllerComponents)
       lazy val router = new Routes(httpErrorHandler, legacyPaths, blogsRouter)
 
-      override lazy val httpFilters = Seq(gzipFilter, new BlabbingFilter())
+      override lazy val httpFilters = Seq(new BlabbingFilter())
 
     }.application
   }
