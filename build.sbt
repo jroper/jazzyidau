@@ -9,7 +9,7 @@ resolvers += Resolver.bintrayRepo("jroper", "maven")
 
 libraryDependencies ++= Seq(
   filters,
-  "au.id.jazzy.erqx" %% "erqx-engine" % "2.1.4"
+  "au.id.jazzy.erqx" %% "erqx-engine" % "2.1.5"
 )
 
 scalaVersion := "2.12.2"
