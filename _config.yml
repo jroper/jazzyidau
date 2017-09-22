@@ -20,10 +20,11 @@ description: |
   Berlin for a year to help a church reconnect with its city.
   <br/>
   <br/>
-  <a href="https://twitter.com/jroper" class="twitter-follow-button" data-show-count="false" data-size="large">Follow @@jroper</a>
-  <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+  <a href="https://twitter.com/jroper" class="twitter-follow-button" data-show-count="false">Follow @jroper</a><script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 footer: |
   Copyright James Roper.  <a rel="license" href="http://creativecommons.org/licenses/by-nc/2.5/au/">Some rights reserved</a>.
 
 timezone: Australia/Canberra
+
+assetsExpiry: 365 days
