@@ -18,6 +18,7 @@ pipelineStages := Seq(gzip, digest)
 excludeFilter in digest := "*.map" || "*.gz"
 
 sourceGenerators in Compile += Def.task {
+  import scala.sys.process._
   val dir = (sourceManaged in Compile).value
   val hash = "git rev-parse HEAD".!!.trim
   val file = dir / "themes" / "Build.scala"
