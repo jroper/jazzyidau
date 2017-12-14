@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
   "au.id.jazzy.erqx" %% "erqx-engine" % "2.1.5"
 )
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.4"
 
 pipelineStages := Seq(gzip, digest)
 excludeFilter in digest := "*.map" || "*.gz"
