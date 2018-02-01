@@ -20,7 +20,7 @@ description: |
   Berlin for a year to help a church reconnect with its city.
   <br/>
   <br/>
-  <a href="https://twitter.com/jroper" class="twitter-follow-button" data-show-count="false">Follow @jroper</a><script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+  <div class="twitter-btn-o"><a class="twitter-btn" title="Follow @jroper on Twitter" href="https://twitter.com/intent/follow?original_referer=https%3A%2F%2Fjazzy.id.au%2F&amp;ref_src=twsrc%5Etfw&amp;region=follow_link&amp;screen_name=jroper&amp;tw_p=followbutton" target="_blank" onclick="window.open(event.currentTarget.getAttribute('href'),'twitter','resizable,height=500,width=550,top=' + Math.max(Math.round(window.screen.height / 2 - 250),0) + ',left=' + Math.round(window.screen.width / 2 - 275)); return false;"><i></i><span class="twitter-label">Follow <b>@jroper</b></span></a></div>
 
 footer: |
   Copyright James Roper.  <a rel="license" href="http://creativecommons.org/licenses/by-nc/2.5/au/">Some rights reserved</a>.
