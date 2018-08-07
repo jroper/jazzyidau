@@ -17,6 +17,10 @@ scalaVersion := "2.12.6"
 pipelineStages := Seq(gzip, digest)
 excludeFilter in digest := "*.map" || "*.gz"
 
+publishArtifact in (Compile, packageSrc) := false
+publishArtifact in (Compile, packageDoc) := false
+PlayKeys.includeDocumentationInBinary := false
+
 sourceGenerators in Compile += Def.task {
   import scala.sys.process._
   val dir = (sourceManaged in Compile).value
