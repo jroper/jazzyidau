@@ -9,10 +9,10 @@ resolvers += Resolver.bintrayRepo("jroper", "maven")
 
 libraryDependencies ++= Seq(
   filters,
-  "au.id.jazzy.erqx" %% "erqx-engine" % "2.1.5"
+  "au.id.jazzy.erqx" %% "erqx-engine" % "2.1.6"
 )
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.6"
 
 pipelineStages := Seq(gzip, digest)
 excludeFilter in digest := "*.map" || "*.gz"
