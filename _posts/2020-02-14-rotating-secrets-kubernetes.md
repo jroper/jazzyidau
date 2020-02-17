@@ -35,7 +35,7 @@ For passwords, it gets harder again, because generally, only one password can wo
 
 Having set out our principles by which the code that consumes our secrets will abide by, we can now propose a mechanism for configuring and rotating secrets in Kubernetes.
 
-Kubernetes secrets allow multiple key value pairs. We can utilise this. When these secrets get mounted as volumes, the filename corresponds to the key in the key value pair. Given the name clash between secret keys, and key value keys, I'm going to refer to the key value keys and filenames.
+Kubernetes secrets allow multiple key value pairs. We can utilise this. When these secrets get mounted as volumes, the filename corresponds to the key in the key value pair. Given the name clash between secret keys, and key value keys, I'm going to refer to the key value keys as filenames.
 
 Consider the case where you might have a symmetric key, perhaps used for signing JWTs. Each key will get an identifier, this could simply be a counter, a timestamp, a UUID, etc. When there is only one key in use, the filename might be `<key-id>.key`. When your code loads the key, it looks in the directory of the volume mount for any files called `*.key`, and will load them all, storing them in a map of key ids to the actual key contents.
 
