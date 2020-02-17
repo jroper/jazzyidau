@@ -60,7 +60,7 @@ Secret consumers could provide built in support for this convention. For example
 
 ### Automatic rotation
 
-If enough consumers were using the convention, tools for automatic secret rotation could be implemented. This could be as simple as an operator that would allow you to configure a secret to be generated and rotated, given paramaters such as how frequently to rotate secrets, how long to wait before making the new secret the primary, and then how long to wait before deleting the old secret. Such a tool could also be configured to create and wait for migration jobs, to allow data encrypted at REST to be decrypted and rencrypted using the new key.
+If enough consumers were using the convention, tools for automatic secret rotation could be implemented. This could be as simple as an operator that would allow you to configure a secret to be generated and rotated, given paramaters such as how frequently to rotate secrets, how long to wait before making the new secret the primary, and then how long to wait before deleting the old secret. Such a tool could also be configured to create and wait for migration jobs, to allow data encrypted at rest to be decrypted and rencrypted using the new key.
 
 ## Pros and cons
 
