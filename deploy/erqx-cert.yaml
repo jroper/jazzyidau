@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: erqx-cert
+spec:
+  secretName: erqx-cert
+  dnsNames:
+  - new.jazzy.id.au
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io

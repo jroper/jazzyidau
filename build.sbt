@@ -1,9 +1,12 @@
+import scala.sys.process._
+val hash = "git rev-parse HEAD".!!.trim
+
 name := "website"
 organization := "au.id.jazzy.www"
-version := "1.0.0-SNAPSHOT"
+version := hash.take(7)
 
 lazy val root = (project in file("."))
-  .enablePlugins(PlayScala, LauncherJarPlugin)
+  .enablePlugins(PlayScala, LauncherJarPlugin, DockerPlugin)
 
 resolvers += Resolver.bintrayRepo("jroper", "maven")
 
@@ -22,9 +25,7 @@ publishArtifact in (Compile, packageDoc) := false
 PlayKeys.includeDocumentationInBinary := false
 
 sourceGenerators in Compile += Def.task {
-  import scala.sys.process._
   val dir = (sourceManaged in Compile).value
-  val hash = "git rev-parse HEAD".!!.trim
   val file = dir / "themes" / "Build.scala"
   if (!file.exists || !IO.read(file).contains(hash)) {
     IO.write(file,
@@ -38,3 +39,19 @@ sourceGenerators in Compile += Def.task {
   Seq(file)
 }.taskValue
 
+import com.typesafe.sbt.packager.docker.Cmd
+
+dockerCommands := dockerCommands.value.map {
+  case Cmd("FROM", unnamed) => Cmd("FROM", unnamed, "as", "main")
+  case other => other
+} ++ Seq(
+  Cmd("FROM", "alpine/git", "as", "git"),
+  Cmd("WORKDIR", "/opt/docker"),
+  Cmd("RUN", "git", "clone", "https://github.com/jroper/jazzyidau.git", "blogs", "--no-checkout"),
+  Cmd("FROM", "main"),
+  Cmd("COPY", "--from=git", "--chown=1001", "/opt/docker/blogs", "/var/blogs/allthatjazz"),
+  Cmd("COPY", "--from=git", "--chown=1001", "/opt/docker/blogs", "/var/blogs/ropedin"),
+  Cmd("ENV", "ALLTHATJAZZ_REPO=/var/blogs/allthatjazz", "ROPEDIN_REPO=/var/blogs/ropedin"),
+)
+
+dockerUsername := Some("jamesroper")
