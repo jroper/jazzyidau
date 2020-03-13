@@ -7,7 +7,7 @@ I'm building a multitenant SaaS on top of Kubernetes at the moment, and one prin
 
 Of course, when it comes to certificates, it's fairly straight forward to rotate a certificate using cert-manager, but even that isn't quite solved - while you can rotate a services certificate, there's no straight forward way to rotate the certificate for the CA that it and the other services it authenticates with trusts.
 
-When it comes to authentication that is not based on certificates, such as symmetric encryption keys, passwords, or assymetric keys used for things like JWTs, there is nothing really out there saying how to do this.
+When it comes to authentication that is not based on certificates, such as symmetric encryption keys, passwords, or asymmetric keys used for things like JWTs, there is nothing really out there saying how to do this.
 
 Of course, it's absolutely possible to do it, and I can come up with multiple different ways in my head to do this without requiring downtime. There are also multiple third party solutions, such as HashiCorp Vault, that makes it possible. But I'd like a Kubernetes native mechanism - afterall, Kubernetes does provide a secret management API, it should be possible to use this in a way that supports secret rotation.
 
@@ -48,7 +48,7 @@ So, given this set up, this will be our rotation mechanism:
 * Once we are sure that all nodes have picked up the new key, we can now change the new key to be the primary. So, the secret is again updated, with `r1.key` being the filename for the old key, and `r2.key.primary` being the filename for the new key.
 * After some time, eg, once we are sure that all JWTs signed by the old key have expired, we will delete the old key, updating the secret so it only contains one key, with a filename of `r2.key.primary`.
 
-This approach can also work when a secret comes in multiple parts, such as assymetric keys, or self signed certificates, simply replace `key` with the name of the thing, so for example, I might have `r2.private` and `r2.public` or `r2.crt`.
+This approach can also work when a secret comes in multiple parts, such as asymmetric keys, or self signed certificates, simply replace `key` with the name of the thing, so for example, I might have `r2.private` and `r2.public` or `r2.crt`.
 
 ## Why bother?
 
@@ -60,7 +60,7 @@ Secret consumers could provide built in support for this convention. For example
 
 ### Automatic rotation
 
-If enough consumers were using the convention, tools for automatic secret rotation could be implemented. This could be as simple as an operator that would allow you to configure a secret to be generated and rotated, given paramaters such as how frequently to rotate secrets, how long to wait before making the new secret the primary, and then how long to wait before deleting the old secret. Such a tool could also be configured to create and wait for migration jobs, to allow data encrypted at rest to be decrypted and rencrypted using the new key.
+If enough consumers were using the convention, tools for automatic secret rotation could be implemented. This could be as simple as an operator that would allow you to configure a secret to be generated and rotated, given parameters such as how frequently to rotate secrets, how long to wait before making the new secret the primary, and then how long to wait before deleting the old secret. Such a tool could also be configured to create and wait for migration jobs, to allow data encrypted at rest to be decrypted and rencrypted using the new key.
 
 ## Pros and cons
 
@@ -78,7 +78,7 @@ In spite of not being specific to Kubernetes, this mechanism is native to the wa
 
 #### No vendor lock in
 
-This also provides for a vendor neutral way to rotate and consume certificates. Today, if using HashiCorp Vault for example, you need to use the Vault client in your code to connect to the Vault server to get keys, which ties your code to Vault. This convention allows whatever is managing the keys to be decoupled from the consumers. This also can be advantagous in development and test environments, you might not be able to run your vendors secrets manager on your local machine for example for licensing or cost reasons, so you can substitute in a different one in those environments.
+This also provides for a vendor neutral way to rotate and consume certificates. Today, if using HashiCorp Vault for example, you need to use the Vault client in your code to connect to the Vault server to get keys, which ties your code to Vault. This convention allows whatever is managing the keys to be decoupled from the consumers. This also can be advantageous in development and test environments, you might not be able to run your vendors secrets manager on your local machine for example for licensing or cost reasons, so you can substitute in a different one in those environments.
 
 ### Cons
 
