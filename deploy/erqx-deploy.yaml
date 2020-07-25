@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: erqx
-        image: jamesroper/website:ebeec81
+        image: jamesroper/website:45af410
         args: ["-J-Xmx256m", "-J-Xms256m"]
         ports:
         - containerPort: 9000
