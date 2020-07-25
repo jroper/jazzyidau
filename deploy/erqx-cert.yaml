@@ -5,7 +5,8 @@ metadata:
 spec:
   secretName: erqx-cert
   dnsNames:
-  - new.jazzy.id.au
+  - jazzy.id.au
+  - www.jazzy.id.au
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer

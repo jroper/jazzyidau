@@ -50,8 +50,7 @@ dockerCommands := dockerCommands.value.map {
   Cmd("RUN", "git", "clone", "https://github.com/jroper/jazzyidau.git", "blogs", "--no-checkout"),
   Cmd("FROM", "main"),
   Cmd("COPY", "--from=git", "--chown=1001", "/opt/docker/blogs", "/var/blogs/allthatjazz"),
-  Cmd("COPY", "--from=git", "--chown=1001", "/opt/docker/blogs", "/var/blogs/ropedin"),
-  Cmd("ENV", "ALLTHATJAZZ_REPO=/var/blogs/allthatjazz", "ROPEDIN_REPO=/var/blogs/ropedin"),
+  Cmd("ENV", "ALLTHATJAZZ_REPO=/var/blogs/allthatjazz"),
 )
 
 dockerUsername := Some("jamesroper")

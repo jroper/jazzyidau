@@ -4,10 +4,11 @@ metadata:
   name: erqx-ingress
   annotations:
     kubernetes.io/ingress.class: nginx
-    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
 spec:
   rules:
-  - host: new.jazzy.id.au
+  - host: jazzy.id.au
     http:
       paths:
       - path: /
@@ -17,4 +18,6 @@ spec:
   tls:
   - secretName: erqx-cert
     hosts:
-    - new.jazzy.id.au
+    - jazzy.id.au
+    - www.jazzy.id.au
+
