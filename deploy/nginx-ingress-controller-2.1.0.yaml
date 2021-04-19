@@ -361,12 +361,10 @@ spec:
               containerPort: 80
               protocol: TCP
               hostPort: 80
-              hostIP: 198.58.106.159
             - name: https
               containerPort: 443
               protocol: TCP
               hostPort: 443
-              hostIP: 198.58.106.159
             - name: webhook
               containerPort: 8443
               protocol: TCP
